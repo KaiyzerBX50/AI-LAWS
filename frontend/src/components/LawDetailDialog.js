@@ -54,7 +54,7 @@ export const LawDetailDialog = ({ lawId, open, onOpenChange, onSelectRelated }) 
               </DialogHeader>
 
               <div className="mt-4 grid grid-cols-1 gap-2 rounded-lg border border-border bg-secondary/50 p-3 text-sm sm:grid-cols-2">
-                <Meta icon={MapPin} label="Jurisdiction" value={law.country} />
+                <Meta icon={MapPin} label="Jurisdiction" value={law.jurisdiction || law.country} />
                 <Meta icon={Calendar} label="Year" value={law.year} />
                 <Meta icon={Layers} label="Region" value={law.region} />
                 <Meta icon={Building2} label="Authority" value={law.authority} />

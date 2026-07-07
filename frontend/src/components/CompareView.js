@@ -28,7 +28,7 @@ export const CompareView = ({ onOpenLaw }) => {
     setSelected((s) => [...s, name]);
     setPick('');
     if (!dataByCountry[name]) {
-      getLaws({ country: name, sort: 'newest' }).then((d) =>
+      getLaws({ country: name, sort: 'newest', limit: 500 }).then((d) =>
         setDataByCountry((prev) => ({ ...prev, [name]: d.laws }))
       );
     }

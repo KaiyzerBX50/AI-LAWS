@@ -12,12 +12,20 @@ export const getCountryDetail = (name) =>
   api.get(`/countries/${encodeURIComponent(name)}`).then((r) => r.data);
 export const getLawById = (id) => api.get(`/laws/${id}`).then((r) => r.data);
 
-export const getLaws = (params = {}) => {
+const cleanParams = (params = {}) => {
   const clean = {};
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '' && v !== 'all') clean[k] = v;
   });
-  return api.get('/laws', { params: clean }).then((r) => r.data);
+  return clean;
+};
+
+export const getLaws = (params = {}) =>
+  api.get('/laws', { params: cleanParams(params) }).then((r) => r.data);
+
+export const buildExportUrl = (params = {}) => {
+  const qs = new URLSearchParams(cleanParams(params)).toString();
+  return `${API}/laws/export${qs ? `?${qs}` : ''}`;
 };
 
 // Stream chat via fetch (SSE-style). onDelta(text), onRefs(refs), onDone(), onError(msg)

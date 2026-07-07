@@ -37,7 +37,7 @@ export const ChartsPanel = ({ stats }) => {
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <Card className="rounded-xl border bg-card p-4 shadow-sm lg:col-span-2">
+      <Card className="glass rounded-2xl p-4 lg:col-span-2">
         <h3 className="mb-3 font-display text-sm font-semibold text-foreground">
           Cumulative AI laws over time
         </h3>
@@ -59,7 +59,7 @@ export const ChartsPanel = ({ stats }) => {
         </ResponsiveContainer>
       </Card>
 
-      <Card className="rounded-xl border bg-card p-4 shadow-sm">
+      <Card className="glass rounded-2xl p-4">
         <h3 className="mb-3 font-display text-sm font-semibold text-foreground">By category</h3>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
@@ -74,7 +74,7 @@ export const ChartsPanel = ({ stats }) => {
         </ResponsiveContainer>
       </Card>
 
-      <Card className="rounded-xl border bg-card p-4 shadow-sm lg:col-span-3">
+      <Card className="glass rounded-2xl p-4 lg:col-span-3">
         <h3 className="mb-3 font-display text-sm font-semibold text-foreground">
           Regulatory status by region
         </h3>

@@ -40,7 +40,7 @@ export const WorldMap = ({ countries, mode, onSelectCountry }) => {
   const clamp = (z) => Math.max(1, Math.min(6, z));
 
   return (
-    <Card className="relative overflow-hidden rounded-xl border bg-card p-0 shadow-sm" data-testid={TRACKER.worldMap}>
+    <Card className="glass relative overflow-hidden rounded-2xl p-0" data-testid={TRACKER.worldMap}>
       <div className="pointer-events-none absolute left-4 top-4 z-10">
         <h2 className="font-display text-sm font-semibold tracking-tight text-foreground">
           Explore by country

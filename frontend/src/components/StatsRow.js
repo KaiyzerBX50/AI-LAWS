@@ -12,7 +12,7 @@ const StatCard = ({ icon: Icon, label, value, testId, accent, delay }) => (
   >
     <Card
       data-testid={testId}
-      className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm"
+      className="glass hover-lift flex items-center gap-4 rounded-2xl p-4"
     >
       <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${accent}`}>
         <Icon className="h-5 w-5" />

@@ -11,7 +11,7 @@ export const TimelineView = ({ onOpenLaw }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getLaws({ sort: 'newest' })
+    getLaws({ sort: 'newest', limit: 1000 })
       .then((d) => setLaws(d.laws))
       .finally(() => setLoading(false));
   }, []);

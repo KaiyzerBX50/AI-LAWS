@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import io
+import csv
 import json
 import logging
 from pathlib import Path
@@ -14,10 +16,16 @@ from datetime import datetime, timezone
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
 
-from ai_laws_data import AI_LAWS, EU_MEMBER_GEO_NAMES, COE_SIGNATORY_GEO_NAMES
+from ai_laws_data import EU_MEMBER_GEO_NAMES, COE_SIGNATORY_GEO_NAMES
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Load the full curated dataset (built from the uploaded AI Act-Law Tracker.xlsx)
+with open(ROOT_DIR / "laws_dataset.json", "r", encoding="utf-8") as _f:
+    AI_LAWS = json.load(_f)
+
+DATA_AS_OF = "2025"  # dataset reference period
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -56,19 +64,21 @@ def compute_maturity(laws: List[dict]) -> int:
         return 0
     enacted = [l for l in laws if l["status"] == "Enacted"]
     proposed = [l for l in laws if l["status"] in ("Proposed", "Draft")]
-    has_comprehensive = any(
-        l["status"] == "Enacted" and l["category"] in ("Comprehensive", "International Treaty")
-        for l in laws
-    )
-    binding_enacted = [l for l in enacted if l["category"] not in VOLUNTARY_CATEGORIES]
-    if has_comprehensive:
+    text = " ".join((l.get("category", "") + " " + l.get("title", "")) for l in laws).lower()
+    comprehensive = any(k in text for k in [
+        "broad ai governance", "comprehensive", "framework act", "ai act",
+        "treaty", "regulation (eu)", "traiga", "raise act",
+    ])
+    if enacted and comprehensive:
         return 4
-    if binding_enacted:
+    if len(enacted) >= 4:
+        return 4
+    if len(enacted) >= 1:
         return 3
-    if enacted:
+    if any("comprehensive" in (l.get("category", "") + l.get("title", "")).lower() for l in proposed):
         return 2
     if proposed:
-        return 2 if any(l["category"] == "Comprehensive" for l in proposed) else 1
+        return 1 if len(proposed) == 1 else 2
     return 0
 
 
@@ -117,17 +127,30 @@ async def get_laws(
     status: Optional[str] = None,
     category: Optional[str] = None,
     country: Optional[str] = None,
+    group: Optional[str] = None,
     year_min: Optional[int] = None,
     year_max: Optional[int] = None,
     sort: Optional[str] = "newest",
+    limit: Optional[int] = 60,
+    offset: Optional[int] = 0,
 ):
-    results = list(AI_LAWS)
+    results = _filter_laws(search, region, status, category, country, group, year_min, year_max, sort)
+    total = len(results)
+    if limit is not None:
+        page = results[offset: offset + limit]
+    else:
+        page = results
+    return {"count": total, "returned": len(page), "offset": offset, "laws": page}
 
+
+def _filter_laws(search, region, status, category, country, group, year_min, year_max, sort):
+    results = list(AI_LAWS)
     if search:
         q = search.lower().strip()
         results = [
             l for l in results
             if q in l["title"].lower()
+            or q in l.get("jurisdiction", "").lower()
             or q in l["country"].lower()
             or q in l["summary"].lower()
             or q in l["category"].lower()
@@ -141,19 +164,53 @@ async def get_laws(
         results = [l for l in results if l["category"] == category]
     if country and country != "all":
         results = [l for l in results if l["country"] == country]
+    if group and group != "all":
+        results = [l for l in results if l.get("group") == group]
     if year_min is not None:
         results = [l for l in results if l["year"] >= year_min]
     if year_max is not None:
         results = [l for l in results if l["year"] <= year_max]
 
     if sort == "oldest":
-        results = sorted(results, key=lambda l: (l["year"], l["date"]))
+        results = sorted(results, key=lambda l: (l["year"], l["title"]))
     elif sort == "country":
-        results = sorted(results, key=lambda l: l["country"])
-    else:  # newest
-        results = sorted(results, key=lambda l: (l["year"], l["date"]), reverse=True)
+        results = sorted(results, key=lambda l: (l["country"], l.get("jurisdiction", "")))
+    else:
+        results = sorted(results, key=lambda l: (l["year"], l["title"]), reverse=True)
+    return results
 
-    return {"count": len(results), "laws": results}
+
+@api_router.get("/laws/export")
+async def export_laws(
+    search: Optional[str] = None,
+    region: Optional[str] = None,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+    country: Optional[str] = None,
+    group: Optional[str] = None,
+    year_min: Optional[int] = None,
+    year_max: Optional[int] = None,
+    sort: Optional[str] = "newest",
+):
+    """Export the currently filtered laws as CSV."""
+    rows = _filter_laws(search, region, status, category, country, group, year_min, year_max, sort)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Jurisdiction", "Title", "Status", "Category", "Region",
+                     "Year", "Authority", "Summary", "Source URL"])
+    for l in rows:
+        src = l["sources"][0]["url"] if l.get("sources") else ""
+        writer.writerow([
+            l.get("jurisdiction", l["country"]), l["title"], l["status"],
+            l["category"], l["region"], l["year"], l.get("authority", ""),
+            l["summary"], src,
+        ])
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ai_law_tracker_export.csv"},
+    )
 
 
 @api_router.get("/laws/{law_id}")
@@ -199,7 +256,7 @@ async def get_country_detail(name: str):
         raise HTTPException(status_code=404, detail="No tracked laws for this country")
     maturity = compute_maturity(laws)
     seen, unique = set(), []
-    for l in sorted(laws, key=lambda x: (x["year"], x["date"]), reverse=True):
+    for l in sorted(laws, key=lambda x: (x["year"], x["title"]), reverse=True):
         if l["id"] not in seen:
             seen.add(l["id"])
             unique.append(l)
@@ -218,6 +275,7 @@ async def get_stats():
     by_region = defaultdict(int)
     by_category = defaultdict(int)
     by_year = defaultdict(int)
+    by_group = defaultdict(int)
     region_status = defaultdict(lambda: {"Enacted": 0, "Proposed": 0, "Draft": 0, "Superseded": 0})
     jurisdictions = set()
 
@@ -226,14 +284,18 @@ async def get_stats():
         by_region[l["region"]] += 1
         by_category[l["category"]] += 1
         by_year[l["year"]] += 1
+        by_group[l.get("group", "Other")] += 1
         region_status[l["region"]][l["status"]] += 1
-        jurisdictions.add(l["country"])
+        jurisdictions.add(l.get("jurisdiction", l["country"]))
 
     timeline = [{"year": y, "count": c} for y, c in sorted(by_year.items())]
     cum = 0
     for pt in timeline:
         cum += pt["count"]
         pt["cumulative"] = cum
+
+    # top categories (dataset has 100+ granular categories)
+    top_categories = sorted(by_category.items(), key=lambda x: x[1], reverse=True)[:8]
 
     return {
         "total_laws": len(AI_LAWS),
@@ -242,9 +304,11 @@ async def get_stats():
         "proposed": by_status.get("Proposed", 0) + by_status.get("Draft", 0),
         "by_status": dict(by_status),
         "by_region": dict(by_region),
-        "by_category": dict(by_category),
+        "by_group": dict(by_group),
+        "by_category": dict(top_categories),
         "timeline": timeline,
         "region_status": [{"region": r, **counts} for r, counts in region_status.items()],
+        "data_as_of": DATA_AS_OF,
     }
 
 
@@ -254,15 +318,18 @@ async def get_meta():
     statuses = ["Enacted", "Proposed", "Draft", "Superseded"]
     categories = sorted({l["category"] for l in AI_LAWS})
     countries = sorted({l["country"] for l in AI_LAWS})
+    groups = sorted({l.get("group", "Other") for l in AI_LAWS})
     years = [l["year"] for l in AI_LAWS]
     return {
         "regions": regions,
         "statuses": statuses,
         "categories": categories,
         "countries": countries,
+        "groups": groups,
         "year_min": min(years),
         "year_max": max(years),
         "maturity_labels": MATURITY_LABELS,
+        "data_as_of": DATA_AS_OF,
     }
 
 

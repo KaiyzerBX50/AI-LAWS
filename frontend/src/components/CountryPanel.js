@@ -78,7 +78,10 @@ export const CountryPanel = ({ countryName, open, onOpenChange, onOpenLaw }) => 
                         <StatusBadge status={law.status} />
                         <span className="font-mono text-xs text-muted-foreground">{law.year}</span>
                       </div>
-                      <h4 className="mt-2 font-display text-sm font-semibold leading-snug text-foreground">
+                      {law.subnational && (
+                        <div className="mt-2 text-xs font-medium text-accent">{law.subnational}</div>
+                      )}
+                      <h4 className="mt-1 font-display text-sm font-semibold leading-snug text-foreground">
                         {law.title}
                       </h4>
                       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
