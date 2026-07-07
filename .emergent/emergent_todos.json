@@ -28,7 +28,19 @@
     "status": "completed"
   },
   {
-    "content": "End-to-End testing of new features",
+    "content": "UI: Rename to Jerry's AI Law Observatory",
+    "status": "completed"
+  },
+  {
+    "content": "UI: 'Top categories' chart with interactive legend + swag",
+    "status": "completed"
+  },
+  {
+    "content": "UI: Add animations (count-up stats, gradient hero, spinning logo, chart reveals, map transitions)",
+    "status": "completed"
+  },
+  {
+    "content": "Verify changes with testing agent",
     "status": "in_progress"
   },
   {

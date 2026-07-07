@@ -2,24 +2,25 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { ScrollText, Globe2, CheckCircle2, Clock } from 'lucide-react';
+import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { TRACKER } from '@/constants/testIds';
 
 const StatCard = ({ icon: Icon, label, value, testId, accent, delay }) => (
   <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.25, delay }}
+    initial={{ opacity: 0, y: 16, scale: 0.98 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
   >
     <Card
       data-testid={testId}
-      className="glass hover-lift flex items-center gap-4 rounded-2xl p-4"
+      className="glass hover-lift group flex items-center gap-4 rounded-2xl p-4"
     >
-      <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${accent}`}>
+      <div className={`flex h-11 w-11 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${accent}`}>
         <Icon className="h-5 w-5" />
       </div>
       <div>
         <div className="font-display text-2xl font-semibold tabular-nums text-foreground">
-          {value}
+          <AnimatedNumber value={value} />
         </div>
         <div className="text-xs text-muted-foreground">{label}</div>
       </div>

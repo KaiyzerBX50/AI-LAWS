@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import '@/App.css';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -161,12 +162,12 @@ function Tracker() {
       <header className="glass sticky top-0 z-40 border-b border-border/60">
         <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground glow-ring">
-              <Orbit className="h-5 w-5" />
+            <div className="animated-border relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground glow-ring">
+              <Orbit className="h-5 w-5 spin-slow" />
             </div>
             <div>
               <h1 className="font-display text-base font-semibold leading-none tracking-tight text-foreground sm:text-lg">
-                AI Law Observatory
+                Jerry's AI Law Observatory
               </h1>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Worldwide AI laws, acts &amp; regulations
@@ -264,11 +265,21 @@ function Tracker() {
                 </ToggleGroup>
               </div>
             </div>
-            {mapScope === 'world' ? (
-              <WorldMap countries={countries} mode={mapMode} onSelectCountry={openCountry} />
-            ) : (
-              <UsStatesMap states={usStates} mode={mapMode} onSelectState={openStateView} />
-            )}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mapScope}
+                initial={{ opacity: 0, scale: 0.985, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.985 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {mapScope === 'world' ? (
+                  <WorldMap countries={countries} mode={mapMode} onSelectCountry={openCountry} />
+                ) : (
+                  <UsStatesMap states={usStates} mode={mapMode} onSelectState={openStateView} />
+                )}
+              </motion.div>
+            </AnimatePresence>
             <ChartsPanel stats={stats} />
           </TabsContent>
 
