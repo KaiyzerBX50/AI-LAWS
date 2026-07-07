@@ -13,6 +13,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
@@ -113,22 +114,28 @@ def _is_comprehensive(laws: List[dict]) -> bool:
     return any(k in text for k in _COMPREHENSIVE_KEYWORDS)
 
 
+def _enacted_score(enacted: List[dict], laws: List[dict]) -> int:
+    if _is_comprehensive(laws) or len(enacted) >= 4:
+        return 4
+    return 3
+
+
+def _proposed_score(proposed: List[dict]) -> int:
+    if not proposed:
+        return 0
+    if _is_comprehensive(proposed):
+        return 2
+    return 1 if len(proposed) == 1 else 2
+
+
 def compute_maturity(laws: List[dict]) -> int:
     """Score a jurisdiction's AI-regulation maturity from 0 (none) to 4 (comprehensive)."""
     if not laws:
         return 0
     enacted = [l for l in laws if l["status"] == "Enacted"]
-    proposed = [l for l in laws if l["status"] in ("Proposed", "Draft")]
-
-    if (enacted and _is_comprehensive(laws)) or len(enacted) >= 4:
-        return 4
     if enacted:
-        return 3
-    if _is_comprehensive(proposed):
-        return 2
-    if proposed:
-        return 1 if len(proposed) == 1 else 2
-    return 0
+        return _enacted_score(enacted, laws)
+    return _proposed_score([l for l in laws if l["status"] in ("Proposed", "Draft")])
 
 
 def expand_geo_names(law: dict) -> List[str]:
@@ -233,29 +240,22 @@ async def root():
     return {"message": "Global AI Law Tracker API", "laws_tracked": len(AI_LAWS)}
 
 
+@dataclass
 class LawFilterParams:
-    """Grouped query params for law filtering (FastAPI dependency)."""
-    def __init__(
-        self,
-        search: Optional[str] = None,
-        region: Optional[str] = None,
-        status: Optional[str] = None,
-        category: Optional[str] = None,
-        country: Optional[str] = None,
-        group: Optional[str] = None,
-        year_min: Optional[int] = None,
-        year_max: Optional[int] = None,
-        sort: Optional[str] = "newest",
-    ):
-        self.search = search
-        self.region = region
-        self.status = status
-        self.category = category
-        self.country = country
-        self.group = group
-        self.year_min = year_min
-        self.year_max = year_max
-        self.sort = sort
+    """Grouped query params for law filtering (FastAPI dependency).
+
+    Using a dataclass avoids a hand-written multi-argument constructor; FastAPI
+    binds each field as an optional query parameter via Depends().
+    """
+    search: Optional[str] = None
+    region: Optional[str] = None
+    status: Optional[str] = None
+    category: Optional[str] = None
+    country: Optional[str] = None
+    group: Optional[str] = None
+    year_min: Optional[int] = None
+    year_max: Optional[int] = None
+    sort: Optional[str] = "newest"
 
 
 # exact-match filters: (param attribute, law key)
