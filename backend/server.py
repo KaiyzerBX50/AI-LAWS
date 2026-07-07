@@ -227,78 +227,84 @@ async def root():
     return {"message": "Global AI Law Tracker API", "laws_tracked": len(AI_LAWS)}
 
 
+class LawFilterParams:
+    """Grouped query params for law filtering (FastAPI dependency)."""
+    def __init__(
+        self,
+        search: Optional[str] = None,
+        region: Optional[str] = None,
+        status: Optional[str] = None,
+        category: Optional[str] = None,
+        country: Optional[str] = None,
+        group: Optional[str] = None,
+        year_min: Optional[int] = None,
+        year_max: Optional[int] = None,
+        sort: Optional[str] = "newest",
+    ):
+        self.search = search
+        self.region = region
+        self.status = status
+        self.category = category
+        self.country = country
+        self.group = group
+        self.year_min = year_min
+        self.year_max = year_max
+        self.sort = sort
+
+
+# exact-match filters: (param attribute, law key)
+_EXACT_FILTERS = [
+    ("region", "region"), ("status", "status"), ("category", "category"),
+    ("country", "country"), ("group", "group"),
+]
+# sort key -> (key function, reverse)
+_SORTERS = {
+    "oldest": (lambda l: (l["year"], l["title"]), False),
+    "country": (lambda l: (l["country"], l.get("jurisdiction", "")), False),
+    "newest": (lambda l: (l["year"], l["title"]), True),
+}
+
+
+def _matches(law: dict, f: "LawFilterParams") -> bool:
+    if f.search:
+        q = f.search.lower().strip()
+        haystack = " ".join([
+            law["title"], law.get("jurisdiction", ""), law["country"],
+            law["summary"], law["category"], law["region"],
+        ]).lower()
+        if q not in haystack:
+            return False
+    for attr, key in _EXACT_FILTERS:
+        val = getattr(f, attr)
+        if val and val != "all" and law.get(key) != val:
+            return False
+    if f.year_min is not None and law["year"] < f.year_min:
+        return False
+    if f.year_max is not None and law["year"] > f.year_max:
+        return False
+    return True
+
+
+def _filter_laws(f: "LawFilterParams") -> List[dict]:
+    results = [l for l in AI_LAWS if _matches(l, f)]
+    key, reverse = _SORTERS.get(f.sort or "newest", _SORTERS["newest"])
+    return sorted(results, key=key, reverse=reverse)
+
+
 @api_router.get("/laws")
 async def get_laws(
-    search: Optional[str] = None,
-    region: Optional[str] = None,
-    status: Optional[str] = None,
-    category: Optional[str] = None,
-    country: Optional[str] = None,
-    group: Optional[str] = None,
-    year_min: Optional[int] = None,
-    year_max: Optional[int] = None,
-    sort: Optional[str] = "newest",
+    f: LawFilterParams = Depends(),
     limit: Optional[int] = 60,
-    offset: Optional[int] = 0,
+    offset: int = 0,
 ):
-    results = _filter_laws(search, region, status, category, country, group, year_min, year_max, sort)
+    results = _filter_laws(f)
     total = len(results)
-    if limit is not None:
-        page = results[offset: offset + limit]
-    else:
-        page = results
+    page = results[offset: offset + limit] if limit is not None else results
     return {"count": total, "returned": len(page), "offset": offset, "laws": page}
 
 
-def _filter_laws(search, region, status, category, country, group, year_min, year_max, sort):
-    results = list(AI_LAWS)
-    if search:
-        q = search.lower().strip()
-        results = [
-            l for l in results
-            if q in l["title"].lower()
-            or q in l.get("jurisdiction", "").lower()
-            or q in l["country"].lower()
-            or q in l["summary"].lower()
-            or q in l["category"].lower()
-            or q in l["region"].lower()
-        ]
-    if region and region != "all":
-        results = [l for l in results if l["region"] == region]
-    if status and status != "all":
-        results = [l for l in results if l["status"] == status]
-    if category and category != "all":
-        results = [l for l in results if l["category"] == category]
-    if country and country != "all":
-        results = [l for l in results if l["country"] == country]
-    if group and group != "all":
-        results = [l for l in results if l.get("group") == group]
-    if year_min is not None:
-        results = [l for l in results if l["year"] >= year_min]
-    if year_max is not None:
-        results = [l for l in results if l["year"] <= year_max]
-
-    if sort == "oldest":
-        results = sorted(results, key=lambda l: (l["year"], l["title"]))
-    elif sort == "country":
-        results = sorted(results, key=lambda l: (l["country"], l.get("jurisdiction", "")))
-    else:
-        results = sorted(results, key=lambda l: (l["year"], l["title"]), reverse=True)
-    return results
-
-
 @api_router.get("/laws/export")
-async def export_laws(
-    search: Optional[str] = None,
-    region: Optional[str] = None,
-    status: Optional[str] = None,
-    category: Optional[str] = None,
-    country: Optional[str] = None,
-    group: Optional[str] = None,
-    year_min: Optional[int] = None,
-    year_max: Optional[int] = None,
-    sort: Optional[str] = "newest",
-):
+async def export_laws(f: LawFilterParams = Depends()):
     """Export the currently filtered laws as CSV."""
     def _safe(val):
         # Prevent CSV/formula injection in spreadsheet apps.
@@ -307,7 +313,7 @@ async def export_laws(
             return "'" + s
         return s
 
-    rows = _filter_laws(search, region, status, category, country, group, year_min, year_max, sort)
+    rows = _filter_laws(f)
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(["Jurisdiction", "Title", "Status", "Category", "Region",

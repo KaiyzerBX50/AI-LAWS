@@ -6,8 +6,11 @@ Output: /app/backend/laws_dataset.json
 """
 import json
 import re
-import openpyxl
+from collections import Counter
 from pathlib import Path
+from typing import List, Optional, Tuple
+
+import openpyxl
 
 SRC = "/tmp/ai_tracker.xlsx"
 OUT = Path(__file__).parent / "laws_dataset.json"
@@ -62,13 +65,13 @@ REGION_MAP = {
 }
 
 
-def slugify(*parts):
+def slugify(*parts) -> str:
     base = "-".join(str(p) for p in parts if p)
     base = re.sub(r"[^a-zA-Z0-9]+", "-", base).strip("-").lower()
     return base[:80]
 
 
-def normalize_status(raw):
+def normalize_status(raw: Optional[str]) -> str:
     s = (raw or "").lower()
     if "fail" in s or "superseded" in s or "repealed" in s:
         return "Superseded"
@@ -85,7 +88,7 @@ def normalize_status(raw):
     return "Enacted"
 
 
-def extract_year(*texts):
+def extract_year(*texts) -> int:
     for t in texts:
         if t is None:
             continue
@@ -95,14 +98,14 @@ def extract_year(*texts):
     return 2024
 
 
-def domain(url):
+def domain(url: Optional[str]) -> str:
     if not url:
         return "Source"
     m = re.search(r"https?://([^/]+)", url)
     return m.group(1).replace("www.", "") if m else "Source"
 
 
-def base_country(juris):
+def base_country(juris: str) -> Tuple[str, Optional[str]]:
     """Strip subnational / co-signatory suffixes to get a base country."""
     c = juris.split(" / ")[0].strip()
     sub = None
@@ -112,7 +115,7 @@ def base_country(juris):
     return c, sub
 
 
-def geo_for(country):
+def geo_for(country: str) -> List[str]:
     if country in MULTILATERAL_BODIES:
         return []
     if country in GEO_MAP:
@@ -121,78 +124,92 @@ def geo_for(country):
     return [country]  # assume name matches Natural Earth
 
 
-def main():
-    wb = openpyxl.load_workbook(SRC, read_only=True, data_only=True)
-    entries = []
+def source_list(url: Optional[str]) -> List[dict]:
+    return [{"title": domain(url), "url": url}] if url else []
 
-    # ---- US sheet ----
-    us = list(wb["US - AI Law Tracker"].iter_rows(values_only=True))
-    for r in us[1:]:
-        if not r or not r[1] or not r[2]:
-            continue
-        num, juris, law, status, coverage, year, category, url, notes = (list(r) + [None] * 9)[:9]
-        entries.append({
-            "id": slugify("us", juris, law, num),
-            "country": "United States of America",
-            "jurisdiction": f"{juris} (US)",
-            "subnational": juris,
-            "region": "United States",
-            "geo_names": ["United States of America"],
-            "title": str(law).strip(),
-            "status": normalize_status(status),
-            "status_raw": (status or "").strip(),
-            "category": (category or "Other").strip(),
-            "type": "Law / bill",
-            "year": extract_year(year, status, coverage),
-            "effective": str(year) if year else "",
-            "authority": juris,
-            "summary": (coverage or "").strip() or "AI-related legislation.",
-            "key_provisions": [],
-            "sources": [{"title": domain(url), "url": url}] if url else [],
-            "notes": (notes or "").strip(),
-            "group": "United States",
-        })
 
-    # ---- Non-US sheet ----
-    nus = list(wb["Non US - AILT"].iter_rows(values_only=True))
-    for r in nus[1:]:
-        if not r or not r[1] or not r[2]:
-            continue
-        (num, juris, law, status, coverage, region, typ, category,
-         binding, effective, authority, url, notes) = (list(r) + [None] * 13)[:13]
-        country, sub = base_country(str(juris))
-        entries.append({
-            "id": slugify("intl", juris, law, num),
-            "country": country,
-            "jurisdiction": str(juris).strip(),
-            "subnational": sub,
-            "region": REGION_MAP.get(region, region or "Multilateral"),
-            "geo_names": geo_for(country),
-            "title": str(law).strip(),
-            "status": normalize_status(status),
-            "status_raw": (status or "").strip(),
-            "category": (category or "AI governance").strip(),
-            "type": (typ or "").strip(),
-            "binding_level": (binding or "").strip(),
-            "year": extract_year(effective, status, binding, coverage),
-            "effective": (effective or "").strip(),
-            "authority": (authority or country).strip(),
-            "summary": (coverage or "").strip() or "AI-related law or policy.",
-            "key_provisions": [],
-            "sources": [{"title": domain(url), "url": url}] if url else [],
-            "notes": (notes or "").strip(),
-            "group": "Multilateral" if country in MULTILATERAL_BODIES or region == "Multilateral" else "International",
-        })
+def parse_us_row(r: tuple) -> Optional[dict]:
+    """Convert a row from the 'US - AI Law Tracker' sheet into a law entry."""
+    if not r or not r[1] or not r[2]:
+        return None
+    num, juris, law, status, coverage, year, category, url, notes = (list(r) + [None] * 9)[:9]
+    return {
+        "id": slugify("us", juris, law, num),
+        "country": "United States of America",
+        "jurisdiction": f"{juris} (US)",
+        "subnational": juris,
+        "region": "United States",
+        "geo_names": ["United States of America"],
+        "title": str(law).strip(),
+        "status": normalize_status(status),
+        "status_raw": (status or "").strip(),
+        "category": (category or "Other").strip(),
+        "type": "Law / bill",
+        "year": extract_year(year, status, coverage),
+        "effective": str(year) if year else "",
+        "authority": juris,
+        "summary": (coverage or "").strip() or "AI-related legislation.",
+        "key_provisions": [],
+        "sources": source_list(url),
+        "notes": (notes or "").strip(),
+        "group": "United States",
+    }
 
-    OUT.write_text(json.dumps(entries, indent=1, ensure_ascii=False))
-    print(f"Wrote {len(entries)} entries to {OUT}")
-    # quick stats
-    from collections import Counter
+
+def parse_nonus_row(r: tuple) -> Optional[dict]:
+    """Convert a row from the 'Non US - AILT' sheet into a law entry."""
+    if not r or not r[1] or not r[2]:
+        return None
+    (num, juris, law, status, coverage, region, typ, category,
+     binding, effective, authority, url, notes) = (list(r) + [None] * 13)[:13]
+    country, sub = base_country(str(juris))
+    is_multilateral = country in MULTILATERAL_BODIES or region == "Multilateral"
+    return {
+        "id": slugify("intl", juris, law, num),
+        "country": country,
+        "jurisdiction": str(juris).strip(),
+        "subnational": sub,
+        "region": REGION_MAP.get(region, region or "Multilateral"),
+        "geo_names": geo_for(country),
+        "title": str(law).strip(),
+        "status": normalize_status(status),
+        "status_raw": (status or "").strip(),
+        "category": (category or "AI governance").strip(),
+        "type": (typ or "").strip(),
+        "binding_level": (binding or "").strip(),
+        "year": extract_year(effective, status, binding, coverage),
+        "effective": (effective or "").strip(),
+        "authority": (authority or country).strip(),
+        "summary": (coverage or "").strip() or "AI-related law or policy.",
+        "key_provisions": [],
+        "sources": source_list(url),
+        "notes": (notes or "").strip(),
+        "group": "Multilateral" if is_multilateral else "International",
+    }
+
+
+def print_stats(entries: List[dict]) -> None:
     print("By group:", dict(Counter(e["group"] for e in entries)))
     print("By status:", dict(Counter(e["status"] for e in entries)))
     print("By region:", dict(Counter(e["region"] for e in entries)))
     print("Distinct countries:", len(set(e["country"] for e in entries)))
     print("Distinct categories:", len(set(e["category"] for e in entries)))
+
+
+def load_sheet(wb, name: str, parser) -> List[dict]:
+    rows = list(wb[name].iter_rows(values_only=True))[1:]  # skip header
+    return [entry for r in rows if (entry := parser(r)) is not None]
+
+
+def main() -> None:
+    wb = openpyxl.load_workbook(SRC, read_only=True, data_only=True)
+    entries: List[dict] = []
+    entries += load_sheet(wb, "US - AI Law Tracker", parse_us_row)
+    entries += load_sheet(wb, "Non US - AILT", parse_nonus_row)
+
+    OUT.write_text(json.dumps(entries, indent=1, ensure_ascii=False))
+    print(f"Wrote {len(entries)} entries to {OUT}")
+    print_stats(entries)
 
 
 if __name__ == "__main__":
