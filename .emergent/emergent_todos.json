@@ -1,0 +1,30 @@
+[
+  {
+    "content": "Phase 1: Get LLM integration playbook (Emergent key)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Build & run Python POC for AI Assistant (policy Q&A) - fix until working",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Get design guidelines (day/night, interactive)",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 2: Backend - MongoDB models + curated real AI-laws seed data + endpoints (laws, countries, stats, chat)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Frontend - interactive world map, filterable list, timeline, compare, detail views, AI assistant, day/night theme",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: All user stories covered in development",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: End-to-End testing using testing agent",
+    "status": "pending"
+  }
+]
