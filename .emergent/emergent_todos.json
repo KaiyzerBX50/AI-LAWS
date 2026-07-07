@@ -1,33 +1,5 @@
 [
   {
-    "content": "Backend: Seed laws into MongoDB + in-memory reload (persistence for admin edits)",
-    "status": "completed"
-  },
-  {
-    "content": "Backend: last_verified dates on every entry",
-    "status": "completed"
-  },
-  {
-    "content": "Backend: Admin auth + CRUD endpoints (create/update/delete laws)",
-    "status": "completed"
-  },
-  {
-    "content": "Backend: /api/us-states endpoint (per-state counts/maturity)",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: US-states interactive sub-map (World/USA toggle in Explore)",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: Admin panel (token gate + add/edit/delete laws)",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: 'Last verified' badge in detail dialog",
-    "status": "completed"
-  },
-  {
     "content": "UI: Rename to Jerry's AI Law Observatory",
     "status": "completed"
   },
@@ -40,11 +12,11 @@
     "status": "completed"
   },
   {
-    "content": "Verify changes with testing agent",
-    "status": "in_progress"
+    "content": "Assistant: enrich answers with real factual knowledge (verified via testing agent)",
+    "status": "completed"
   },
   {
     "content": "Run Code Review",
-    "status": "pending"
+    "status": "in_progress"
   }
 ]
