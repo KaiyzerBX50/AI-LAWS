@@ -1,22 +1,22 @@
 [
   {
-    "content": "UI: Rename to Jerry's AI Law Observatory",
+    "content": "Code review #2: is/== anti-pattern — reviewed; all are correct `is None` idioms (PEP 8), no change needed",
     "status": "completed"
   },
   {
-    "content": "UI: 'Top categories' chart with interactive legend + swag",
+    "content": "Code review #3/#5: consolidate filter params into LawFilterParams dependency + reduce complexity",
     "status": "completed"
   },
   {
-    "content": "UI: Add animations (count-up stats, gradient hero, spinning logo, chart reveals, map transitions)",
+    "content": "Code review #4/#6: refactor build_dataset.py into typed helper functions (identical output)",
     "status": "completed"
   },
   {
-    "content": "Assistant: enrich answers with real factual knowledge (verified via testing agent)",
+    "content": "Verify refactors with testing agent (100% pass, zero regressions)",
     "status": "completed"
   },
   {
-    "content": "Run Code Review (independent audit) + apply high-value fixes",
+    "content": "Code review #1/#7: backend_test.py refactor — noted as auto-generated QA artifact (not applied)",
     "status": "completed"
   }
 ]
