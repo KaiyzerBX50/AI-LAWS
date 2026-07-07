@@ -10,7 +10,7 @@ import json
 import uuid
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -51,21 +51,35 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 
+_country_index_cache = None  # invalidated on every reload_laws()
+
+
 async def reload_laws():
     """Refresh the in-memory AI_LAWS mirror from MongoDB."""
-    global AI_LAWS
+    global AI_LAWS, _country_index_cache
     docs = await db.laws.find({}, {"_id": 0}).to_list(length=100000)
     for d in docs:
         d.setdefault("last_verified", DATA_LAST_VERIFIED)
     if docs:
-        AI_LAWS = docs
+        AI_LAWS = docs          # name-rebind is atomic under the asyncio loop
+        _country_index_cache = None
+
+
+DATASET_VERSION = "2025.1"  # bump to force a reseed when laws_dataset.json changes
 
 
 @app.on_event("startup")
 async def seed_and_load():
-    if await db.laws.count_documents({}) == 0:
+    meta = await db.meta.find_one({"key": "dataset_version"})
+    if not meta or meta.get("value") != DATASET_VERSION:
+        await db.laws.delete_many({})
         await db.laws.insert_many([dict(l) for l in SEED_LAWS])
-        logger.info("Seeded %d laws into MongoDB", len(SEED_LAWS))
+        await db.meta.replace_one(
+            {"key": "dataset_version"},
+            {"key": "dataset_version", "value": DATASET_VERSION},
+            upsert=True,
+        )
+        logger.info("Seeded %d laws (dataset %s)", len(SEED_LAWS), DATASET_VERSION)
     await reload_laws()
     logger.info("Loaded %d laws into memory", len(AI_LAWS))
 
@@ -125,11 +139,16 @@ def expand_geo_names(law: dict) -> List[str]:
 
 
 def build_country_index():
-    """Map geo country name -> list of applicable laws (incl. supra-national)."""
+    """Map geo country name -> list of applicable laws (incl. supra-national).
+    Cached; invalidated whenever reload_laws() runs."""
+    global _country_index_cache
+    if _country_index_cache is not None:
+        return _country_index_cache
     country_laws = defaultdict(list)
     for law in AI_LAWS:
         for gn in expand_geo_names(law):
             country_laws[gn].append(law)
+    _country_index_cache = country_laws
     return country_laws
 
 
@@ -142,18 +161,25 @@ class ChatRequest(BaseModel):
 
 
 class LawInput(BaseModel):
-    country: str
+    country: str = Field(min_length=1)
     jurisdiction: Optional[str] = None
     subnational: Optional[str] = None
     region: str = "Multilateral"
-    title: str
+    title: str = Field(min_length=1)
     status: str = "Enacted"
     category: str = "AI governance"
-    year: int = 2025
+    year: int = Field(default=2025, ge=1900, le=2100)
     summary: str = ""
     authority: Optional[str] = ""
     source_url: Optional[str] = ""
     group: str = "International"
+
+    @field_validator("country", "title")
+    @classmethod
+    def _not_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("must not be empty")
+        return v.strip()
 
 
 def _geo_names_for(country: str, group: str) -> List[str]:
@@ -274,6 +300,13 @@ async def export_laws(
     sort: Optional[str] = "newest",
 ):
     """Export the currently filtered laws as CSV."""
+    def _safe(val):
+        # Prevent CSV/formula injection in spreadsheet apps.
+        s = "" if val is None else str(val)
+        if s and s[0] in ("=", "+", "-", "@"):
+            return "'" + s
+        return s
+
     rows = _filter_laws(search, region, status, category, country, group, year_min, year_max, sort)
     buf = io.StringIO()
     writer = csv.writer(buf)
@@ -281,11 +314,11 @@ async def export_laws(
                      "Year", "Authority", "Summary", "Source URL"])
     for l in rows:
         src = l["sources"][0]["url"] if l.get("sources") else ""
-        writer.writerow([
+        writer.writerow([_safe(x) for x in [
             l.get("jurisdiction", l["country"]), l["title"], l["status"],
             l["category"], l["region"], l["year"], l.get("authority", ""),
             l["summary"], src,
-        ])
+        ]])
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]),
@@ -455,10 +488,14 @@ async def admin_verify(_: bool = Depends(require_admin)):
 
 @api_router.post("/admin/laws")
 async def admin_create_law(data: LawInput, _: bool = Depends(require_admin)):
-    law = law_from_input(data)
-    await db.laws.insert_one(dict(law))
-    await reload_laws()
-    return {"ok": True, "law": {k: v for k, v in law.items() if k != "_id"}}
+    try:
+        law = law_from_input(data)
+        await db.laws.insert_one(dict(law))
+        await reload_laws()
+        return {"ok": True, "law": {k: v for k, v in law.items() if k != "_id"}}
+    except Exception:
+        logger.exception("Admin create failed")
+        raise HTTPException(status_code=500, detail="Failed to create law")
 
 
 @api_router.put("/admin/laws/{law_id}")
@@ -466,16 +503,24 @@ async def admin_update_law(law_id: str, data: LawInput, _: bool = Depends(requir
     existing = await db.laws.find_one({"id": law_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Law not found")
-    law = law_from_input(data, existing)
-    law["id"] = law_id
-    await db.laws.replace_one({"id": law_id}, dict(law))
-    await reload_laws()
-    return {"ok": True, "law": {k: v for k, v in law.items() if k != "_id"}}
+    try:
+        law = law_from_input(data, existing)
+        law["id"] = law_id
+        await db.laws.replace_one({"id": law_id}, dict(law))
+        await reload_laws()
+        return {"ok": True, "law": {k: v for k, v in law.items() if k != "_id"}}
+    except Exception:
+        logger.exception("Admin update failed")
+        raise HTTPException(status_code=500, detail="Failed to update law")
 
 
 @api_router.delete("/admin/laws/{law_id}")
 async def admin_delete_law(law_id: str, _: bool = Depends(require_admin)):
-    res = await db.laws.delete_one({"id": law_id})
+    try:
+        res = await db.laws.delete_one({"id": law_id})
+    except Exception:
+        logger.exception("Admin delete failed")
+        raise HTTPException(status_code=500, detail="Failed to delete law")
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Law not found")
     await reload_laws()
@@ -599,18 +644,21 @@ async def chat(req: ChatRequest):
                     yield f"data: {json.dumps({'type': 'delta', 'content': event.content})}\n\n"
                 elif isinstance(event, StreamDone):
                     break
-        except Exception as e:
+        except Exception:
             logger.exception("Chat streaming error")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': 'The assistant is temporarily unavailable. Please try again.'})}\n\n"
 
         answer = "".join(collected)
         if answer:
-            await db.chat_messages.insert_one({
-                "session_id": req.session_id,
-                "role": "assistant",
-                "content": answer,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            try:
+                await db.chat_messages.insert_one({
+                    "session_id": req.session_id,
+                    "role": "assistant",
+                    "content": answer,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+            except Exception:
+                logger.exception("Failed to persist assistant message")
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(

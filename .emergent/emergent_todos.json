@@ -16,7 +16,7 @@
     "status": "completed"
   },
   {
-    "content": "Run Code Review",
-    "status": "in_progress"
+    "content": "Run Code Review (independent audit) + apply high-value fixes",
+    "status": "completed"
   }
 ]
