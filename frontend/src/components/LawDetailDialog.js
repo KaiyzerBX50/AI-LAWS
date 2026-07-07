@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -47,6 +48,9 @@ export const LawDetailDialog = ({ lawId, open, onOpenChange, onSelectRelated }) 
                 <DialogTitle className="font-display text-xl leading-snug">
                   {law.title}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Details, key provisions and sources for {law.title} ({law.country})
+                </DialogDescription>
               </DialogHeader>
 
               <div className="mt-4 grid grid-cols-1 gap-2 rounded-lg border border-border bg-secondary/50 p-3 text-sm sm:grid-cols-2">

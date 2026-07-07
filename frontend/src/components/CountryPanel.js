@@ -4,6 +4,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -40,6 +41,9 @@ export const CountryPanel = ({ countryName, open, onOpenChange, onOpenLaw }) => 
           <div className="p-6">
             <SheetHeader className="text-left">
               <SheetTitle className="font-display text-2xl">{countryName}</SheetTitle>
+              <SheetDescription className="sr-only">
+                Tracked AI laws, acts and regulations for {countryName}
+              </SheetDescription>
             </SheetHeader>
 
             {loading ? (
