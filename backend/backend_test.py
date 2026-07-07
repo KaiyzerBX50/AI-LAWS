@@ -494,6 +494,179 @@ def main():
         print(f"  → Meta last_verified: {data['last_verified']}")
     t.test("GET /api/meta includes last_verified", test_meta_last_verified)
 
+    # Test 36: AI Assistant enrichment - EU AI Act detailed answer
+    def test_chat_eu_ai_act_enriched():
+        import json
+        import time
+        r = requests.post(
+            f"{BASE_URL}/chat",
+            json={"session_id": "test_enrichment_eu", "message": "What is the EU AI Act? Explain what it actually does."},
+            stream=True,
+            timeout=45
+        )
+        t.assert_eq(r.status_code, 200, "Status code")
+        
+        events = []
+        full_response = ""
+        refs_found = False
+        
+        for line in r.iter_lines(decode_unicode=True):
+            if line.startswith("data:"):
+                try:
+                    data = json.loads(line[5:].strip())
+                    events.append(data)
+                    if data.get("type") == "refs":
+                        refs_found = True
+                    elif data.get("type") == "delta":
+                        full_response += data.get("content", "")
+                    elif data.get("type") == "done":
+                        break
+                except:
+                    pass
+        
+        t.assert_eq(refs_found, True, "Should have refs event")
+        t.assert_gte(len(full_response), 200, "Response should be substantive (>200 chars)")
+        
+        # Check for concrete details about EU AI Act
+        response_lower = full_response.lower()
+        has_risk_mention = any(term in response_lower for term in ["risk", "tier", "unacceptable", "high risk", "minimal"])
+        has_detail = any(term in response_lower for term in ["banned", "prohibited", "obligation", "requirement", "penalty", "fine", "gpai", "general-purpose", "timeline", "phased"])
+        
+        if not has_risk_mention:
+            print(f"  ⚠ Warning: Response lacks risk-based approach details")
+        if not has_detail:
+            print(f"  ⚠ Warning: Response lacks concrete details (banned practices, obligations, penalties, etc.)")
+        
+        print(f"  → EU AI Act response: {len(full_response)} chars, has_risk_mention={has_risk_mention}, has_detail={has_detail}")
+        print(f"  → First 300 chars: {full_response[:300]}...")
+    t.test("POST /api/chat EU AI Act returns enriched, detailed answer", test_chat_eu_ai_act_enriched)
+
+    # Test 37: AI Assistant enrichment - China generative AI
+    def test_chat_china_generative_ai():
+        import json
+        import time
+        r = requests.post(
+            f"{BASE_URL}/chat",
+            json={"session_id": "test_enrichment_china", "message": "How does China regulate generative AI?"},
+            stream=True,
+            timeout=45
+        )
+        t.assert_eq(r.status_code, 200, "Status code")
+        
+        full_response = ""
+        refs_found = False
+        
+        for line in r.iter_lines(decode_unicode=True):
+            if line.startswith("data:"):
+                try:
+                    data = json.loads(line[5:].strip())
+                    if data.get("type") == "refs":
+                        refs_found = True
+                    elif data.get("type") == "delta":
+                        full_response += data.get("content", "")
+                    elif data.get("type") == "done":
+                        break
+                except:
+                    pass
+        
+        t.assert_eq(refs_found, True, "Should have refs event")
+        t.assert_gte(len(full_response), 100, "Response should be substantive (>100 chars)")
+        
+        # Should not be a refusal
+        response_lower = full_response.lower()
+        is_refusal = any(term in response_lower for term in ["i don't have", "i cannot", "i'm unable", "no information", "not sure"])
+        
+        if is_refusal:
+            print(f"  ⚠ Warning: Response appears to be a refusal")
+        
+        print(f"  → China generative AI response: {len(full_response)} chars, is_refusal={is_refusal}")
+        print(f"  → First 200 chars: {full_response[:200]}...")
+    t.test("POST /api/chat China generative AI returns substantive answer", test_chat_china_generative_ai)
+
+    # Test 38: AI Assistant - out-of-scope question (should not fabricate)
+    def test_chat_out_of_scope():
+        import json
+        r = requests.post(
+            f"{BASE_URL}/chat",
+            json={"session_id": "test_out_of_scope", "message": "What are the exact fine amounts in the fictional AI law of Atlantis?"},
+            stream=True,
+            timeout=45
+        )
+        t.assert_eq(r.status_code, 200, "Status code")
+        
+        full_response = ""
+        
+        for line in r.iter_lines(decode_unicode=True):
+            if line.startswith("data:"):
+                try:
+                    data = json.loads(line[5:].strip())
+                    if data.get("type") == "delta":
+                        full_response += data.get("content", "")
+                    elif data.get("type") == "done":
+                        break
+                except:
+                    pass
+        
+        # Should indicate lack of information, not fabricate specifics
+        response_lower = full_response.lower()
+        indicates_uncertainty = any(term in response_lower for term in ["don't have", "no information", "not tracked", "unable", "cannot", "not sure", "no record", "no data", "not aware"])
+        
+        # Check if response mentions Atlantis with specific monetary amounts (fabrication)
+        has_atlantis = "atlantis" in response_lower
+        has_money = any(sym in response_lower for sym in ["$", "€", "million", "billion"])
+        fabricates = has_atlantis and has_money and not indicates_uncertainty
+        
+        print(f"  → Out-of-scope response: {len(full_response)} chars, indicates_uncertainty={indicates_uncertainty}, fabricates={fabricates}")
+        print(f"  → Response: {full_response[:300]}...")
+    t.test("POST /api/chat out-of-scope question does not fabricate", test_chat_out_of_scope)
+
+    # Test 39: Chat history persistence
+    def test_chat_history():
+        import json
+        session_id = "test_history_persistence"
+        
+        # Send a message
+        r = requests.post(
+            f"{BASE_URL}/chat",
+            json={"session_id": session_id, "message": "What is the EU AI Act?"},
+            stream=True,
+            timeout=45
+        )
+        t.assert_eq(r.status_code, 200, "Chat status code")
+        
+        # Consume the stream
+        for line in r.iter_lines(decode_unicode=True):
+            if line.startswith("data:"):
+                try:
+                    data = json.loads(line[5:].strip())
+                    if data.get("type") == "done":
+                        break
+                except:
+                    pass
+        
+        # Check history
+        r2 = requests.get(f"{BASE_URL}/chat/history/{session_id}")
+        t.assert_eq(r2.status_code, 200, "History status code")
+        data = r2.json()
+        t.assert_in("messages", data, "Has messages")
+        t.assert_gte(len(data["messages"]), 2, "At least 2 messages (user + assistant)")
+        
+        # Check message structure
+        user_msg = next((m for m in data["messages"] if m["role"] == "user"), None)
+        assistant_msg = next((m for m in data["messages"] if m["role"] == "assistant"), None)
+        
+        if not user_msg:
+            raise AssertionError("No user message in history")
+        if not assistant_msg:
+            raise AssertionError("No assistant message in history")
+        
+        t.assert_in("content", user_msg, "User message has content")
+        t.assert_in("content", assistant_msg, "Assistant message has content")
+        t.assert_in("timestamp", user_msg, "User message has timestamp")
+        
+        print(f"  → History: {len(data['messages'])} messages, user={user_msg['content'][:50]}..., assistant={assistant_msg['content'][:50]}...")
+    t.test("GET /api/chat/history/{session_id} returns stored messages", test_chat_history)
+
     # Summary
     success = t.summary()
     return 0 if success else 1

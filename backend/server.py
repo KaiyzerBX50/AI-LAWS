@@ -79,11 +79,6 @@ def require_admin(x_admin_token: Optional[str] = Header(None)):
 # --------------------------------------------------------------------------
 # Helpers
 # --------------------------------------------------------------------------
-VOLUNTARY_CATEGORIES = {
-    "Voluntary Framework", "National Strategy", "Advisory",
-    "Framework", "Innovation / Soft-law", "Data Privacy / Guidance",
-}
-
 MATURITY_LABELS = {
     0: "No tracked AI law",
     1: "Emerging signals",
@@ -491,17 +486,31 @@ async def admin_delete_law(law_id: str, _: bool = Depends(require_admin)):
 # AI Assistant (grounded, streaming)
 # --------------------------------------------------------------------------
 SYSTEM_PROMPT = (
-    "You are the AI Policy Assistant for a worldwide tracker of AI laws, acts and "
-    "regulations. Answer factually, clearly and concisely about global AI regulation. "
-    "You are given a CONTEXT of tracked laws with numbered references. Ground your "
-    "answers in this context and cite entries inline like [1], [2]. If the answer is "
-    "not covered by the context and you are not confident, say you do not have verified "
-    "information rather than guessing. Use short paragraphs and bullet points. Keep a "
-    "neutral, professional tone."
+    "You are the AI Policy Assistant for 'Jerry's AI Law Observatory', a worldwide tracker "
+    "of AI laws, acts, treaties and governance frameworks.\n\n"
+    "You are given a CONTEXT of laws that are tracked in this app, each with a numbered "
+    "reference. Use it as your primary grounding and cite the entries you rely on inline "
+    "like [1], [2].\n\n"
+    "IMPORTANT — be genuinely helpful and informative:\n"
+    "- You SHOULD draw on your own well-established knowledge of these laws to EXPLAIN, "
+    "VERIFY and add real, concrete detail beyond the short summaries in the context. For "
+    "example, if asked about the EU AI Act, explain its risk-based tiers (unacceptable, "
+    "high, limited, minimal risk), key obligations, the general-purpose AI rules, penalty "
+    "levels, and its phased timeline — actual facts, not just the one-line summary.\n"
+    "- When the tracker context and your knowledge agree, present the facts confidently and "
+    "cite the tracked entry.\n"
+    "- You may add relevant context that is NOT in the tracker (e.g., specifics, dates, "
+    "background) when you are confident it is accurate; make clear it is general background. "
+    "Only decline when you are genuinely unsure — then say so briefly rather than inventing "
+    "specifics (avoid fabricating exact article numbers, penalty figures or dates you are "
+    "not sure of).\n"
+    "- Prefer clear structure: a short intro, then bullet points for key provisions, and a "
+    "one-line takeaway when useful. Keep a neutral, professional, and knowledgeable tone.\n"
+    "- When helpful, point the user to the official source linked in the tracked entry."
 )
 
 
-def select_relevant_laws(query: str, limit: int = 6) -> List[dict]:
+def select_relevant_laws(query: str, limit: int = 8) -> List[dict]:
     q = query.lower()
     terms = [t for t in ''.join(c if c.isalnum() else ' ' for c in q).split() if len(t) > 2]
     scored = []
@@ -524,13 +533,23 @@ def select_relevant_laws(query: str, limit: int = 6) -> List[dict]:
 def build_context(laws: List[dict]):
     lines, refs = [], []
     for i, law in enumerate(laws, 1):
-        lines.append(
-            f"[{i}] {law['country']} — {law['title']} | Status: {law['status']} "
-            f"({law['year']}) | Category: {law['category']}\n{law['summary']}"
-        )
+        parts = [
+            f"[{i}] {law.get('jurisdiction') or law['country']} — {law['title']}",
+            f"Status: {law['status']} ({law['year']}) | Category: {law['category']} | "
+            f"Region: {law['region']}",
+        ]
+        if law.get("authority"):
+            parts.append(f"Authority: {law['authority']}")
+        parts.append(f"Summary: {law['summary']}")
+        if law.get("key_provisions"):
+            parts.append("Key provisions: " + "; ".join(law["key_provisions"]))
+        if law.get("sources"):
+            parts.append(f"Source: {law['sources'][0].get('url', '')}")
+        lines.append("\n".join(parts))
         refs.append({
             "index": i, "id": law["id"], "title": law["title"],
-            "country": law["country"], "status": law["status"], "year": law["year"],
+            "country": law.get("jurisdiction") or law["country"],
+            "status": law["status"], "year": law["year"],
         })
     return "\n\n".join(lines), refs
 
