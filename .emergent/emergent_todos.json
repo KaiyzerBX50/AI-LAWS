@@ -9,22 +9,22 @@
   },
   {
     "content": "Phase 2: Get design guidelines (day/night, interactive)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Backend - MongoDB models + curated real AI-laws seed data + endpoints (laws, countries, stats, chat)",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Frontend - interactive world map, filterable list, timeline, compare, detail views, AI assistant, day/night theme",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: All user stories covered in development",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: End-to-End testing using testing agent",
-    "status": "pending"
+    "status": "in_progress"
   }
 ]
