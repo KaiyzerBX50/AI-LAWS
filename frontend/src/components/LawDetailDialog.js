@@ -34,7 +34,13 @@ export const LawDetailDialog = ({ lawId, open, onOpenChange, onSelectRelated }) 
         className="max-h-[88vh] max-w-2xl overflow-hidden p-0"
       >
         {loading || !law ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading law details…</div>
+          <div className="p-8 text-sm text-muted-foreground">
+            <DialogHeader>
+              <DialogTitle className="sr-only">Law details</DialogTitle>
+              <DialogDescription className="sr-only">Loading law details</DialogDescription>
+            </DialogHeader>
+            Loading law details…
+          </div>
         ) : (
           <ScrollArea className="max-h-[88vh]">
             <div className="p-6">

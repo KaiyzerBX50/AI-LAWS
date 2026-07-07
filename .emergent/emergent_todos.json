@@ -1,22 +1,38 @@
 [
   {
-    "content": "Code review #2: is/== anti-pattern — reviewed; all are correct `is None` idioms (PEP 8), no change needed",
+    "content": "#2 identity comparisons: verified all are correct `is None` idioms — no change (would be wrong)",
     "status": "completed"
   },
   {
-    "content": "Code review #3/#5: consolidate filter params into LawFilterParams dependency + reduce complexity",
+    "content": "compute_maturity(): split out _is_comprehensive() helper (lower complexity)",
     "status": "completed"
   },
   {
-    "content": "Code review #4/#6: refactor build_dataset.py into typed helper functions (identical output)",
+    "content": "_matches(): split into _match_search/_match_exact/_match_years predicates",
     "status": "completed"
   },
   {
-    "content": "Verify refactors with testing agent (100% pass, zero regressions)",
+    "content": "chat(): decomposed into _sse/_store_message/_recent_history_text/_build_prompt/_stream_answer",
     "status": "completed"
   },
   {
-    "content": "Code review #1/#7: backend_test.py refactor — noted as auto-generated QA artifact (not applied)",
+    "content": "build_dataset.py parse_nonus_row: _clean() helper (identical output)",
+    "status": "completed"
+  },
+  {
+    "content": "backend_test.py: rewritten into modular typed test functions + thin runner",
+    "status": "completed"
+  },
+  {
+    "content": "LawFilterParams 10-param __init__: kept (FastAPI 0.110 needs it for query binding) — noted",
+    "status": "completed"
+  },
+  {
+    "content": "Fix LOW a11y warning (DialogTitle during loading state)",
+    "status": "completed"
+  },
+  {
+    "content": "Verify with testing agent (iteration_7: zero regressions)",
     "status": "completed"
   }
 ]
