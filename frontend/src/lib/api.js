@@ -23,6 +23,21 @@ const cleanParams = (params = {}) => {
 export const getLaws = (params = {}) =>
   api.get('/laws', { params: cleanParams(params) }).then((r) => r.data);
 
+export const getUsStates = () => api.get('/us-states').then((r) => r.data);
+export const getUsStateDetail = (name) =>
+  api.get(`/us-states/${encodeURIComponent(name)}`).then((r) => r.data);
+
+// ---- Admin (token-protected) ----
+const adminHeaders = (token) => ({ headers: { 'X-Admin-Token': token } });
+export const verifyAdmin = (token) =>
+  api.get('/admin/verify', adminHeaders(token)).then((r) => r.data);
+export const createLaw = (token, body) =>
+  api.post('/admin/laws', body, adminHeaders(token)).then((r) => r.data);
+export const updateLaw = (token, id, body) =>
+  api.put(`/admin/laws/${id}`, body, adminHeaders(token)).then((r) => r.data);
+export const deleteLaw = (token, id) =>
+  api.delete(`/admin/laws/${id}`, adminHeaders(token)).then((r) => r.data);
+
 export const buildExportUrl = (params = {}) => {
   const qs = new URLSearchParams(cleanParams(params)).toString();
   return `${API}/laws/export${qs ? `?${qs}` : ''}`;

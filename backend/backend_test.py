@@ -306,6 +306,194 @@ def main():
         print(f"  → Law {law_id}: {data['title'][:50]}...")
     t.test("GET /api/laws/{id} returns full law details", test_law_detail)
 
+    # Test 20: Last verified field on all laws
+    def test_last_verified():
+        r = requests.get(f"{BASE_URL}/laws?limit=10")
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        for law in data["laws"]:
+            t.assert_in("last_verified", law, f"Law {law['id']} has last_verified")
+            # Check format YYYY-MM-DD
+            lv = law["last_verified"]
+            if len(lv) != 10 or lv[4] != '-' or lv[7] != '-':
+                raise AssertionError(f"last_verified format invalid: {lv}")
+        print(f"  → All {len(data['laws'])} laws have last_verified field (YYYY-MM-DD)")
+    t.test("GET /api/laws returns laws with last_verified field", test_last_verified)
+
+    # Test 21: Last verified in law detail
+    def test_last_verified_detail():
+        r = requests.get(f"{BASE_URL}/laws?limit=1")
+        law_id = r.json()["laws"][0]["id"]
+        r2 = requests.get(f"{BASE_URL}/laws/{law_id}")
+        t.assert_eq(r2.status_code, 200, "Status code")
+        data = r2.json()
+        t.assert_in("last_verified", data, "Law detail has last_verified")
+        print(f"  → Law {law_id} last_verified: {data['last_verified']}")
+    t.test("GET /api/laws/{id} includes last_verified", test_last_verified_detail)
+
+    # Test 22: US states endpoint
+    def test_us_states():
+        r = requests.get(f"{BASE_URL}/us-states")
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_gte(len(data), 30, "At least 30 US states")
+        t.assert_in("California", data, "Has California")
+        ca = data["California"]
+        t.assert_gte(ca["total"], 1, "California has laws")
+        t.assert_in("counts", ca, "California has counts")
+        t.assert_in("maturity", ca, "California has maturity")
+        print(f"  → {len(data)} US states, California: {ca['total']} laws, maturity={ca['maturity']}")
+    t.test("GET /api/us-states returns ~40 states with California", test_us_states)
+
+    # Test 23: US state detail - California
+    def test_us_state_california():
+        r = requests.get(f"{BASE_URL}/us-states/California")
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_eq(data["name"], "California", "State name")
+        t.assert_gte(data["total"], 1, "California total laws")
+        t.assert_in("laws", data, "Has laws list")
+        t.assert_in("maturity", data, "Has maturity")
+        print(f"  → California: {data['total']} laws, maturity={data['maturity']}")
+    t.test("GET /api/us-states/California returns state detail", test_us_state_california)
+
+    # Test 24: US state detail - NotAState (404)
+    def test_us_state_404():
+        r = requests.get(f"{BASE_URL}/us-states/NotAState")
+        t.assert_eq(r.status_code, 404, "Status code should be 404")
+        print(f"  → NotAState correctly returns 404")
+    t.test("GET /api/us-states/NotAState returns 404", test_us_state_404)
+
+    # Test 25: Admin verify - no token (401)
+    def test_admin_verify_no_token():
+        r = requests.get(f"{BASE_URL}/admin/verify")
+        t.assert_eq(r.status_code, 401, "Status code should be 401")
+        print(f"  → No token correctly returns 401")
+    t.test("GET /api/admin/verify without token returns 401", test_admin_verify_no_token)
+
+    # Test 26: Admin verify - wrong token (401)
+    def test_admin_verify_wrong_token():
+        r = requests.get(f"{BASE_URL}/admin/verify", headers={"X-Admin-Token": "wrong-token"})
+        t.assert_eq(r.status_code, 401, "Status code should be 401")
+        print(f"  → Wrong token correctly returns 401")
+    t.test("GET /api/admin/verify with wrong token returns 401", test_admin_verify_wrong_token)
+
+    # Test 27: Admin verify - correct token (200)
+    def test_admin_verify_correct():
+        r = requests.get(f"{BASE_URL}/admin/verify", headers={"X-Admin-Token": "ailaw-admin-2025"})
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_eq(data["ok"], True, "ok is True")
+        print(f"  → Correct token returns {data}")
+    t.test("GET /api/admin/verify with correct token returns 200", test_admin_verify_correct)
+
+    # Test 28: Admin create law - no token (401)
+    def test_admin_create_no_token():
+        r = requests.post(f"{BASE_URL}/admin/laws", json={
+            "country": "Test Country", "title": "Test Law", "status": "Enacted",
+            "category": "AI governance", "year": 2025, "summary": "Test", "group": "International"
+        })
+        t.assert_eq(r.status_code, 401, "Status code should be 401")
+        print(f"  → No token correctly returns 401")
+    t.test("POST /api/admin/laws without token returns 401", test_admin_create_no_token)
+
+    # Test 29: Admin create law - with token (200)
+    created_law_id = None
+    def test_admin_create_with_token():
+        nonlocal created_law_id
+        r = requests.post(f"{BASE_URL}/admin/laws", 
+            headers={"X-Admin-Token": "ailaw-admin-2025"},
+            json={
+                "country": "Test Country", "title": "Test Law for Admin CRUD", 
+                "status": "Enacted", "category": "AI governance", "year": 2025, 
+                "summary": "This is a test law created by the testing agent", 
+                "source_url": "https://example.com", "group": "International", "region": "Europe"
+            })
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_eq(data["ok"], True, "ok is True")
+        t.assert_in("law", data, "Has law object")
+        t.assert_in("id", data["law"], "Law has id")
+        t.assert_in("last_verified", data["law"], "Law has last_verified")
+        created_law_id = data["law"]["id"]
+        print(f"  → Created law: {created_law_id}, last_verified={data['law']['last_verified']}")
+    t.test("POST /api/admin/laws with token creates law", test_admin_create_with_token)
+
+    # Test 30: Admin update law - with token (200)
+    def test_admin_update_with_token():
+        if not created_law_id:
+            print(f"  ⚠ Skipping: no created law ID")
+            return
+        r = requests.put(f"{BASE_URL}/admin/laws/{created_law_id}",
+            headers={"X-Admin-Token": "ailaw-admin-2025"},
+            json={
+                "country": "Test Country", "title": "Test Law UPDATED", 
+                "status": "Enacted", "category": "AI governance", "year": 2025, 
+                "summary": "This law was updated", "source_url": "https://example.com", 
+                "group": "International", "region": "Europe"
+            })
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_eq(data["ok"], True, "ok is True")
+        print(f"  → Updated law: {created_law_id}")
+    t.test("PUT /api/admin/laws/{id} with token updates law", test_admin_update_with_token)
+
+    # Test 31: Verify update via search
+    def test_verify_update():
+        if not created_law_id:
+            print(f"  ⚠ Skipping: no created law ID")
+            return
+        r = requests.get(f"{BASE_URL}/laws?search=Test Law UPDATED")
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_gte(data["count"], 1, "Found updated law")
+        found = any(law["id"] == created_law_id for law in data["laws"])
+        if not found:
+            raise AssertionError(f"Updated law {created_law_id} not found in search")
+        print(f"  → Search found updated law: {created_law_id}")
+    t.test("GET /api/laws?search=Test Law UPDATED reflects update", test_verify_update)
+
+    # Test 32: Admin delete law - with token (200)
+    def test_admin_delete_with_token():
+        if not created_law_id:
+            print(f"  ⚠ Skipping: no created law ID")
+            return
+        r = requests.delete(f"{BASE_URL}/admin/laws/{created_law_id}",
+            headers={"X-Admin-Token": "ailaw-admin-2025"})
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_eq(data["ok"], True, "ok is True")
+        t.assert_eq(data["deleted"], created_law_id, "deleted ID matches")
+        print(f"  → Deleted law: {created_law_id}")
+    t.test("DELETE /api/admin/laws/{id} with token deletes law", test_admin_delete_with_token)
+
+    # Test 33: Verify deletion via stats
+    def test_verify_deletion():
+        r = requests.get(f"{BASE_URL}/stats")
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        # Should be back to 372 (or close if other tests created entries)
+        t.assert_gte(data["total_laws"], 372, "Total laws >= 372")
+        print(f"  → After deletion, total_laws={data['total_laws']}")
+    t.test("GET /api/stats shows law count after deletion", test_verify_deletion)
+
+    # Test 34: Admin delete nonexistent law (404)
+    def test_admin_delete_404():
+        r = requests.delete(f"{BASE_URL}/admin/laws/nonexistent-id-12345",
+            headers={"X-Admin-Token": "ailaw-admin-2025"})
+        t.assert_eq(r.status_code, 404, "Status code should be 404")
+        print(f"  → Nonexistent law correctly returns 404")
+    t.test("DELETE /api/admin/laws/{nonexistent} returns 404", test_admin_delete_404)
+
+    # Test 35: Meta includes last_verified
+    def test_meta_last_verified():
+        r = requests.get(f"{BASE_URL}/meta")
+        t.assert_eq(r.status_code, 200, "Status code")
+        data = r.json()
+        t.assert_in("last_verified", data, "Meta has last_verified")
+        print(f"  → Meta last_verified: {data['last_verified']}")
+    t.test("GET /api/meta includes last_verified", test_meta_last_verified)
+
     # Summary
     success = t.summary()
     return 0 if success else 1

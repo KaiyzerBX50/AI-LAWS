@@ -10,9 +10,20 @@ export const TRACKER = {
   dataFreshnessBadge: 'data-freshness-badge',
   // map
   worldMap: 'world-map',
+  usMap: 'us-map',
+  mapScopeToggle: 'map-scope-toggle',
   mapLegend: 'map-legend',
   mapModeToggle: 'map-mode-toggle',
   countryPanel: 'country-panel',
+  statePanel: 'state-panel',
+  // admin
+  adminButton: 'admin-open-button',
+  adminTokenInput: 'admin-token-input',
+  adminLoginButton: 'admin-login-button',
+  adminAddButton: 'admin-add-button',
+  adminSaveButton: 'admin-save-button',
+  adminDeleteButton: 'admin-delete-button',
+  adminSearchInput: 'admin-search-input',
   // stats
   statsDashboard: 'stats-dashboard',
   statTotalLaws: 'stat-total-laws',
@@ -37,6 +48,7 @@ export const TRACKER = {
   // detail
   lawDetailDialog: 'law-detail-dialog',
   lawSourceLinks: 'law-source-links',
+  lawLastVerified: 'law-last-verified',
   // timeline
   timelineView: 'timeline-view',
   // compare

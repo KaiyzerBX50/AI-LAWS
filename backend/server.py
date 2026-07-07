@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Header, Depends
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,6 +7,7 @@ import os
 import io
 import csv
 import json
+import uuid
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -21,11 +22,19 @@ from ai_laws_data import EU_MEMBER_GEO_NAMES, COE_SIGNATORY_GEO_NAMES
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# Load the full curated dataset (built from the uploaded AI Act-Law Tracker.xlsx)
-with open(ROOT_DIR / "laws_dataset.json", "r", encoding="utf-8") as _f:
-    AI_LAWS = json.load(_f)
+DATA_AS_OF = "2025"                 # dataset reference period
+DATA_LAST_VERIFIED = "2025-12-01"  # default provenance date for seed entries
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "ailaw-admin-2025")
 
-DATA_AS_OF = "2025"  # dataset reference period
+# Seed dataset (built from the uploaded AI Act-Law Tracker.xlsx). Loaded into
+# MongoDB on first startup; thereafter Mongo is the source of truth so admin
+# edits persist. AI_LAWS is an in-memory mirror used for fast filtering.
+with open(ROOT_DIR / "laws_dataset.json", "r", encoding="utf-8") as _f:
+    SEED_LAWS = json.load(_f)
+for _l in SEED_LAWS:
+    _l.setdefault("last_verified", DATA_LAST_VERIFIED)
+
+AI_LAWS = list(SEED_LAWS)  # fallback until Mongo load completes on startup
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -40,6 +49,31 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+async def reload_laws():
+    """Refresh the in-memory AI_LAWS mirror from MongoDB."""
+    global AI_LAWS
+    docs = await db.laws.find({}, {"_id": 0}).to_list(length=100000)
+    for d in docs:
+        d.setdefault("last_verified", DATA_LAST_VERIFIED)
+    if docs:
+        AI_LAWS = docs
+
+
+@app.on_event("startup")
+async def seed_and_load():
+    if await db.laws.count_documents({}) == 0:
+        await db.laws.insert_many([dict(l) for l in SEED_LAWS])
+        logger.info("Seeded %d laws into MongoDB", len(SEED_LAWS))
+    await reload_laws()
+    logger.info("Loaded %d laws into memory", len(AI_LAWS))
+
+
+def require_admin(x_admin_token: Optional[str] = Header(None)):
+    if x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid or missing admin token")
+    return True
 
 
 # --------------------------------------------------------------------------
@@ -110,6 +144,58 @@ def build_country_index():
 class ChatRequest(BaseModel):
     session_id: str = Field(default="default")
     message: str
+
+
+class LawInput(BaseModel):
+    country: str
+    jurisdiction: Optional[str] = None
+    subnational: Optional[str] = None
+    region: str = "Multilateral"
+    title: str
+    status: str = "Enacted"
+    category: str = "AI governance"
+    year: int = 2025
+    summary: str = ""
+    authority: Optional[str] = ""
+    source_url: Optional[str] = ""
+    group: str = "International"
+
+
+def _geo_names_for(country: str, group: str) -> List[str]:
+    if group == "United States":
+        return ["United States of America"]
+    special = {"European Union": "__EU__", "Council of Europe": "__COE__",
+               "United States": "United States of America"}
+    if country in special:
+        return [special[country]]
+    return [country]
+
+
+def law_from_input(data: LawInput, existing: Optional[dict] = None) -> dict:
+    base = dict(existing) if existing else {}
+    base.update({
+        "country": data.country,
+        "jurisdiction": data.jurisdiction or data.country,
+        "subnational": data.subnational,
+        "region": data.region,
+        "title": data.title,
+        "status": data.status,
+        "status_raw": data.status,
+        "category": data.category,
+        "year": data.year,
+        "summary": data.summary,
+        "authority": data.authority or data.country,
+        "group": data.group,
+        "geo_names": _geo_names_for(data.country, data.group),
+        "sources": [{"title": "Source", "url": data.source_url}] if data.source_url else base.get("sources", []),
+        "key_provisions": base.get("key_provisions", []),
+        "type": base.get("type", "Law / bill"),
+        "effective": base.get("effective", str(data.year)),
+        "last_verified": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+    })
+    if not base.get("id"):
+        base["id"] = f"admin-{uuid.uuid4().hex[:12]}"
+    return base
 
 
 # --------------------------------------------------------------------------
@@ -330,7 +416,75 @@ async def get_meta():
         "year_max": max(years),
         "maturity_labels": MATURITY_LABELS,
         "data_as_of": DATA_AS_OF,
+        "last_verified": DATA_LAST_VERIFIED,
     }
+
+
+@api_router.get("/us-states")
+async def get_us_states():
+    """Per-US-state law counts + maturity for the US sub-map."""
+    state_laws = defaultdict(list)
+    for l in AI_LAWS:
+        if l.get("group") == "United States" and l.get("subnational"):
+            state_laws[l["subnational"]].append(l)
+    out = {}
+    for name, laws in state_laws.items():
+        counts = {"Enacted": 0, "Proposed": 0, "Draft": 0, "Superseded": 0}
+        for l in laws:
+            counts[l["status"]] = counts.get(l["status"], 0) + 1
+        out[name] = {
+            "name": name,
+            "total": len(laws),
+            "counts": counts,
+            "maturity": compute_maturity(laws),
+        }
+    return out
+
+
+@api_router.get("/us-states/{name}")
+async def get_us_state_detail(name: str):
+    laws = [l for l in AI_LAWS if l.get("group") == "United States" and l.get("subnational") == name]
+    if not laws:
+        raise HTTPException(status_code=404, detail="No tracked laws for this state")
+    laws = sorted(laws, key=lambda x: (x["year"], x["title"]), reverse=True)
+    return {"name": name, "total": len(laws), "maturity": compute_maturity(laws), "laws": laws}
+
+
+# --------------------------------------------------------------------------
+# Admin CRUD (token-protected)
+# --------------------------------------------------------------------------
+@api_router.get("/admin/verify")
+async def admin_verify(_: bool = Depends(require_admin)):
+    return {"ok": True}
+
+
+@api_router.post("/admin/laws")
+async def admin_create_law(data: LawInput, _: bool = Depends(require_admin)):
+    law = law_from_input(data)
+    await db.laws.insert_one(dict(law))
+    await reload_laws()
+    return {"ok": True, "law": {k: v for k, v in law.items() if k != "_id"}}
+
+
+@api_router.put("/admin/laws/{law_id}")
+async def admin_update_law(law_id: str, data: LawInput, _: bool = Depends(require_admin)):
+    existing = await db.laws.find_one({"id": law_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Law not found")
+    law = law_from_input(data, existing)
+    law["id"] = law_id
+    await db.laws.replace_one({"id": law_id}, dict(law))
+    await reload_laws()
+    return {"ok": True, "law": {k: v for k, v in law.items() if k != "_id"}}
+
+
+@api_router.delete("/admin/laws/{law_id}")
+async def admin_delete_law(law_id: str, _: bool = Depends(require_admin)):
+    res = await db.laws.delete_one({"id": law_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Law not found")
+    await reload_laws()
+    return {"ok": True, "deleted": law_id}
 
 
 # --------------------------------------------------------------------------

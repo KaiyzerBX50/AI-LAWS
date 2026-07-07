@@ -4,7 +4,10 @@ import { ThemeProvider } from '@/lib/ThemeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CosmicBackground } from '@/components/CosmicBackground';
 import { WorldMap } from '@/components/WorldMap';
+import { UsStatesMap } from '@/components/UsStatesMap';
 import { CountryPanel } from '@/components/CountryPanel';
+import { StatePanel } from '@/components/StatePanel';
+import { AdminPanel } from '@/components/AdminPanel';
 import { LawDetailDialog } from '@/components/LawDetailDialog';
 import { StatsRow } from '@/components/StatsRow';
 import { ChartsPanel } from '@/components/ChartsPanel';
@@ -13,12 +16,12 @@ import { BrowseGrid } from '@/components/BrowseGrid';
 import { TimelineView } from '@/components/TimelineView';
 import { CompareView } from '@/components/CompareView';
 import { AIAssistant } from '@/components/AIAssistant';
-import { getMeta, getStats, getCountries, getLaws, buildExportUrl } from '@/lib/api';
+import { getMeta, getStats, getCountries, getLaws, buildExportUrl, getUsStates } from '@/lib/api';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
-import { Orbit, Map, LayoutGrid, Clock, GitCompareArrows, Sparkle, ScrollText, Globe2 } from 'lucide-react';
+import { Orbit, Map, LayoutGrid, Clock, GitCompareArrows, Sparkle, ScrollText, Globe2, Shield } from 'lucide-react';
 import { TRACKER } from '@/constants/testIds';
 
 const DEFAULT_FILTERS = {
@@ -40,13 +43,18 @@ function Tracker() {
   const [meta, setMeta] = useState(null);
   const [stats, setStats] = useState(null);
   const [countries, setCountries] = useState(null);
+  const [usStates, setUsStates] = useState(null);
   const [mapMode, setMapMode] = useState('maturity');
+  const [mapScope, setMapScope] = useState('world');
   const [tab, setTab] = useState(initial.tab);
 
   const [lawId, setLawId] = useState(null);
   const [lawOpen, setLawOpen] = useState(false);
   const [country, setCountry] = useState(null);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [usState, setUsState] = useState(null);
+  const [stateOpen, setStateOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   const [filters, setFilters] = useState(initial.filters);
   const [laws, setLaws] = useState([]);
@@ -56,11 +64,14 @@ function Tracker() {
   const [loadingMore, setLoadingMore] = useState(false);
   const debounceRef = useRef(null);
 
-  useEffect(() => {
+  const loadReference = useCallback(() => {
     getMeta().then(setMeta).catch(() => {});
     getStats().then(setStats).catch(() => {});
     getCountries().then(setCountries).catch(() => {});
+    getUsStates().then(setUsStates).catch(() => {});
   }, []);
+
+  useEffect(() => { loadReference(); }, [loadReference]);
 
   // sync URL (shareable state)
   useEffect(() => {
@@ -107,10 +118,22 @@ function Tracker() {
     setCountry(name);
     setCountryOpen(true);
   }, []);
+  const openStateView = useCallback((name) => {
+    setUsState(name);
+    setStateOpen(true);
+  }, []);
   const openLawFromPanel = (id) => {
     setCountryOpen(false);
+    setStateOpen(false);
     setTimeout(() => openLaw(id), 150);
   };
+
+  const refreshData = useCallback(() => {
+    loadReference();
+    getLaws({ ...filters, limit: PAGE, offset: 0 }).then((d) => {
+      setLaws(d.laws); setTotal(d.count); setOffset(d.laws.length);
+    });
+  }, [filters, loadReference]);
 
   const handleExport = () => {
     window.open(buildExportUrl(filters), '_blank');
@@ -158,6 +181,15 @@ function Tracker() {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               {stats ? `${stats.total_laws} entries · ${stats.total_jurisdictions} jurisdictions` : 'Loading…'}
             </span>
+            <button
+              type="button"
+              onClick={() => setAdminOpen(true)}
+              data-testid={TRACKER.adminButton}
+              aria-label="Open admin panel"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Shield className="h-4 w-4" />
+            </button>
             <ThemeToggle />
           </div>
         </div>
@@ -205,22 +237,38 @@ function Tracker() {
 
           {/* Explore */}
           <TabsContent value="explore" className="space-y-6">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
-                World map
+                {mapScope === 'world' ? 'World map' : 'United States map'}
               </h3>
-              <ToggleGroup
-                type="single"
-                value={mapMode}
-                onValueChange={(v) => v && setMapMode(v)}
-                data-testid={TRACKER.mapModeToggle}
-                className="glass rounded-xl p-0.5"
-              >
-                <ToggleGroupItem value="maturity" className="h-7 px-3 text-xs">Maturity</ToggleGroupItem>
-                <ToggleGroupItem value="status" className="h-7 px-3 text-xs">Status</ToggleGroupItem>
-              </ToggleGroup>
+              <div className="flex items-center gap-2">
+                <ToggleGroup
+                  type="single"
+                  value={mapScope}
+                  onValueChange={(v) => v && setMapScope(v)}
+                  data-testid={TRACKER.mapScopeToggle}
+                  className="glass rounded-xl p-0.5"
+                >
+                  <ToggleGroupItem value="world" className="h-7 px-3 text-xs">World</ToggleGroupItem>
+                  <ToggleGroupItem value="us" className="h-7 px-3 text-xs">United States</ToggleGroupItem>
+                </ToggleGroup>
+                <ToggleGroup
+                  type="single"
+                  value={mapMode}
+                  onValueChange={(v) => v && setMapMode(v)}
+                  data-testid={TRACKER.mapModeToggle}
+                  className="glass rounded-xl p-0.5"
+                >
+                  <ToggleGroupItem value="maturity" className="h-7 px-3 text-xs">Maturity</ToggleGroupItem>
+                  <ToggleGroupItem value="status" className="h-7 px-3 text-xs">Status</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
-            <WorldMap countries={countries} mode={mapMode} onSelectCountry={openCountry} />
+            {mapScope === 'world' ? (
+              <WorldMap countries={countries} mode={mapMode} onSelectCountry={openCountry} />
+            ) : (
+              <UsStatesMap states={usStates} mode={mapMode} onSelectState={openStateView} />
+            )}
             <ChartsPanel stats={stats} />
           </TabsContent>
 
@@ -291,6 +339,18 @@ function Tracker() {
         open={countryOpen}
         onOpenChange={setCountryOpen}
         onOpenLaw={openLawFromPanel}
+      />
+      <StatePanel
+        stateName={usState}
+        open={stateOpen}
+        onOpenChange={setStateOpen}
+        onOpenLaw={openLawFromPanel}
+      />
+      <AdminPanel
+        open={adminOpen}
+        onOpenChange={setAdminOpen}
+        meta={meta}
+        onDataChanged={refreshData}
       />
     </div>
   );

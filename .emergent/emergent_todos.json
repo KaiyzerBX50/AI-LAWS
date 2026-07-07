@@ -1,22 +1,38 @@
 [
   {
-    "content": "Phase 3: Integrate full Excel dataset (372 real entries: US states + international)",
+    "content": "Backend: Seed laws into MongoDB + in-memory reload (persistence for admin edits)",
     "status": "completed"
   },
   {
-    "content": "Phase 3: Backend - pagination, group filter, CSV export endpoint, updated maturity",
+    "content": "Backend: last_verified dates on every entry",
     "status": "completed"
   },
   {
-    "content": "Phase 3: Frontend - group filter, Load more pagination, CSV export, shareable URL links",
+    "content": "Backend: Admin auth + CRUD endpoints (create/update/delete laws)",
     "status": "completed"
   },
   {
-    "content": "Redesign: 'Out of this world' cosmic aesthetic (aurora/starfield bg, glassmorphism, glow, gradient hero, day/night)",
+    "content": "Backend: /api/us-states endpoint (per-state counts/maturity)",
     "status": "completed"
   },
   {
-    "content": "Phase 3: End-to-End testing (dataset, pagination, export, share, dark mode, all views)",
+    "content": "Frontend: US-states interactive sub-map (World/USA toggle in Explore)",
     "status": "completed"
+  },
+  {
+    "content": "Frontend: Admin panel (token gate + add/edit/delete laws)",
+    "status": "completed"
+  },
+  {
+    "content": "Frontend: 'Last verified' badge in detail dialog",
+    "status": "completed"
+  },
+  {
+    "content": "End-to-End testing of new features",
+    "status": "in_progress"
+  },
+  {
+    "content": "Run Code Review",
+    "status": "pending"
   }
 ]

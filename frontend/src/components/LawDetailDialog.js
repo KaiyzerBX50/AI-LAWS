@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getLawById } from '@/lib/api';
-import { MapPin, ExternalLink, Building2, Calendar, Layers, Link2 } from 'lucide-react';
+import { MapPin, ExternalLink, Building2, Calendar, Layers, Link2, ShieldCheck } from 'lucide-react';
 import { TRACKER } from '@/constants/testIds';
 
 export const LawDetailDialog = ({ lawId, open, onOpenChange, onSelectRelated }) => {
@@ -62,6 +62,15 @@ export const LawDetailDialog = ({ lawId, open, onOpenChange, onSelectRelated }) 
 
               <Section title="Overview">
                 <p className="text-sm leading-relaxed text-foreground/90">{law.summary}</p>
+                {law.last_verified && (
+                  <p
+                    data-testid={TRACKER.lawLastVerified}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/50 px-2 py-1 text-xs text-muted-foreground"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                    Last verified {law.last_verified}
+                  </p>
+                )}
               </Section>
 
               {law.key_provisions?.length > 0 && (
