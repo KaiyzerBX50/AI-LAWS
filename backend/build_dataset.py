@@ -128,6 +128,12 @@ def source_list(url: Optional[str]) -> List[dict]:
     return [{"title": domain(url), "url": url}] if url else []
 
 
+def _clean(value, default: str = "") -> str:
+    """Trim a cell to a string, falling back to a default when empty/None."""
+    s = ("" if value is None else str(value)).strip()
+    return s or default
+
+
 def parse_us_row(r: tuple) -> Optional[dict]:
     """Convert a row from the 'US - AI Law Tracker' sheet into a law entry."""
     if not r or not r[1] or not r[2]:
@@ -140,18 +146,18 @@ def parse_us_row(r: tuple) -> Optional[dict]:
         "subnational": juris,
         "region": "United States",
         "geo_names": ["United States of America"],
-        "title": str(law).strip(),
+        "title": _clean(law),
         "status": normalize_status(status),
-        "status_raw": (status or "").strip(),
-        "category": (category or "Other").strip(),
+        "status_raw": _clean(status),
+        "category": _clean(category, "Other"),
         "type": "Law / bill",
         "year": extract_year(year, status, coverage),
         "effective": str(year) if year else "",
         "authority": juris,
-        "summary": (coverage or "").strip() or "AI-related legislation.",
+        "summary": _clean(coverage, "AI-related legislation."),
         "key_provisions": [],
         "sources": source_list(url),
-        "notes": (notes or "").strip(),
+        "notes": _clean(notes),
         "group": "United States",
     }
 
@@ -167,23 +173,23 @@ def parse_nonus_row(r: tuple) -> Optional[dict]:
     return {
         "id": slugify("intl", juris, law, num),
         "country": country,
-        "jurisdiction": str(juris).strip(),
+        "jurisdiction": _clean(juris),
         "subnational": sub,
         "region": REGION_MAP.get(region, region or "Multilateral"),
         "geo_names": geo_for(country),
-        "title": str(law).strip(),
+        "title": _clean(law),
         "status": normalize_status(status),
-        "status_raw": (status or "").strip(),
-        "category": (category or "AI governance").strip(),
-        "type": (typ or "").strip(),
-        "binding_level": (binding or "").strip(),
+        "status_raw": _clean(status),
+        "category": _clean(category, "AI governance"),
+        "type": _clean(typ),
+        "binding_level": _clean(binding),
         "year": extract_year(effective, status, binding, coverage),
-        "effective": (effective or "").strip(),
-        "authority": (authority or country).strip(),
-        "summary": (coverage or "").strip() or "AI-related law or policy.",
+        "effective": _clean(effective),
+        "authority": _clean(authority, country),
+        "summary": _clean(coverage, "AI-related law or policy."),
         "key_provisions": [],
         "sources": source_list(url),
-        "notes": (notes or "").strip(),
+        "notes": _clean(notes),
         "group": "Multilateral" if is_multilateral else "International",
     }
 

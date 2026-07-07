@@ -102,23 +102,29 @@ MATURITY_LABELS = {
 }
 
 
+_COMPREHENSIVE_KEYWORDS = (
+    "broad ai governance", "comprehensive", "framework act", "ai act",
+    "treaty", "regulation (eu)", "traiga", "raise act",
+)
+
+
+def _is_comprehensive(laws: List[dict]) -> bool:
+    text = " ".join((l.get("category", "") + " " + l.get("title", "")) for l in laws).lower()
+    return any(k in text for k in _COMPREHENSIVE_KEYWORDS)
+
+
 def compute_maturity(laws: List[dict]) -> int:
+    """Score a jurisdiction's AI-regulation maturity from 0 (none) to 4 (comprehensive)."""
     if not laws:
         return 0
     enacted = [l for l in laws if l["status"] == "Enacted"]
     proposed = [l for l in laws if l["status"] in ("Proposed", "Draft")]
-    text = " ".join((l.get("category", "") + " " + l.get("title", "")) for l in laws).lower()
-    comprehensive = any(k in text for k in [
-        "broad ai governance", "comprehensive", "framework act", "ai act",
-        "treaty", "regulation (eu)", "traiga", "raise act",
-    ])
-    if enacted and comprehensive:
+
+    if (enacted and _is_comprehensive(laws)) or len(enacted) >= 4:
         return 4
-    if len(enacted) >= 4:
-        return 4
-    if len(enacted) >= 1:
+    if enacted:
         return 3
-    if any("comprehensive" in (l.get("category", "") + l.get("title", "")).lower() for l in proposed):
+    if _is_comprehensive(proposed):
         return 2
     if proposed:
         return 1 if len(proposed) == 1 else 2
@@ -265,24 +271,37 @@ _SORTERS = {
 }
 
 
-def _matches(law: dict, f: "LawFilterParams") -> bool:
-    if f.search:
-        q = f.search.lower().strip()
-        haystack = " ".join([
-            law["title"], law.get("jurisdiction", ""), law["country"],
-            law["summary"], law["category"], law["region"],
-        ]).lower()
-        if q not in haystack:
-            return False
+def _match_search(law: dict, search: Optional[str]) -> bool:
+    if not search:
+        return True
+    q = search.lower().strip()
+    haystack = " ".join([
+        law["title"], law.get("jurisdiction", ""), law["country"],
+        law["summary"], law["category"], law["region"],
+    ]).lower()
+    return q in haystack
+
+
+def _match_exact(law: dict, f: "LawFilterParams") -> bool:
     for attr, key in _EXACT_FILTERS:
         val = getattr(f, attr)
         if val and val != "all" and law.get(key) != val:
             return False
+    return True
+
+
+def _match_years(law: dict, f: "LawFilterParams") -> bool:
     if f.year_min is not None and law["year"] < f.year_min:
         return False
     if f.year_max is not None and law["year"] > f.year_max:
         return False
     return True
+
+
+def _matches(law: dict, f: "LawFilterParams") -> bool:
+    return (_match_search(law, f.search)
+            and _match_exact(law, f)
+            and _match_years(law, f))
 
 
 def _filter_laws(f: "LawFilterParams") -> List[dict]:
@@ -605,70 +624,78 @@ def build_context(laws: List[dict]):
     return "\n\n".join(lines), refs
 
 
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+async def _store_message(session_id: str, role: str, content: str) -> None:
+    try:
+        await db.chat_messages.insert_one({
+            "session_id": session_id,
+            "role": role,
+            "content": content,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        logger.exception("Failed to persist %s message", role)
+
+
+async def _recent_history_text(session_id: str) -> str:
+    history = await db.chat_messages.find(
+        {"session_id": session_id}, {"_id": 0}
+    ).sort("timestamp", -1).to_list(6)
+    history = list(reversed(history))
+    if len(history) <= 1:
+        return ""
+    prev = history[:-1][-4:]
+    return "\n".join(f"{m['role'].upper()}: {m['content']}" for m in prev)
+
+
+def _build_prompt(message: str, context: str, history_text: str) -> str:
+    return (
+        f"CONTEXT (tracked AI laws):\n{context}\n\n"
+        + (f"RECENT CONVERSATION:\n{history_text}\n\n" if history_text else "")
+        + f"USER QUESTION: {message}"
+    )
+
+
+async def _stream_answer(session_id: str, prompt: str, refs: list):
+    yield _sse({"type": "refs", "refs": refs})
+    collected = []
+    try:
+        chat_client = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=SYSTEM_PROMPT,
+        ).with_model("openai", "gpt-5.4")
+        async for event in chat_client.stream_message(UserMessage(text=prompt)):
+            if isinstance(event, TextDelta):
+                collected.append(event.content)
+                yield _sse({"type": "delta", "content": event.content})
+            elif isinstance(event, StreamDone):
+                break
+    except Exception:
+        logger.exception("Chat streaming error")
+        yield _sse({"type": "error", "message": "The assistant is temporarily unavailable. Please try again."})
+
+    answer = "".join(collected)
+    if answer:
+        await _store_message(session_id, "assistant", answer)
+    yield _sse({"type": "done"})
+
+
 @api_router.post("/chat")
 async def chat(req: ChatRequest):
     if not req.message or not req.message.strip():
         raise HTTPException(status_code=400, detail="Message is required")
 
-    relevant = select_relevant_laws(req.message)
-    context, refs = build_context(relevant)
-
-    await db.chat_messages.insert_one({
-        "session_id": req.session_id,
-        "role": "user",
-        "content": req.message,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
-
-    history = await db.chat_messages.find(
-        {"session_id": req.session_id}, {"_id": 0}
-    ).sort("timestamp", -1).to_list(6)
-    history = list(reversed(history))
-    history_text = ""
-    if len(history) > 1:
-        prev = history[:-1][-4:]
-        history_text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in prev)
-
-    prompt = (
-        f"CONTEXT (tracked AI laws):\n{context}\n\n"
-        + (f"RECENT CONVERSATION:\n{history_text}\n\n" if history_text else "")
-        + f"USER QUESTION: {req.message}"
-    )
-
-    async def event_generator():
-        yield f"data: {json.dumps({'type': 'refs', 'refs': refs})}\n\n"
-        collected = []
-        try:
-            chat_client = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=req.session_id,
-                system_message=SYSTEM_PROMPT,
-            ).with_model("openai", "gpt-5.4")
-            async for event in chat_client.stream_message(UserMessage(text=prompt)):
-                if isinstance(event, TextDelta):
-                    collected.append(event.content)
-                    yield f"data: {json.dumps({'type': 'delta', 'content': event.content})}\n\n"
-                elif isinstance(event, StreamDone):
-                    break
-        except Exception:
-            logger.exception("Chat streaming error")
-            yield f"data: {json.dumps({'type': 'error', 'message': 'The assistant is temporarily unavailable. Please try again.'})}\n\n"
-
-        answer = "".join(collected)
-        if answer:
-            try:
-                await db.chat_messages.insert_one({
-                    "session_id": req.session_id,
-                    "role": "assistant",
-                    "content": answer,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                })
-            except Exception:
-                logger.exception("Failed to persist assistant message")
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+    context, refs = build_context(select_relevant_laws(req.message))
+    await _store_message(req.session_id, "user", req.message)
+    history_text = await _recent_history_text(req.session_id)
+    prompt = _build_prompt(req.message, context, history_text)
 
     return StreamingResponse(
-        event_generator(),
+        _stream_answer(req.session_id, prompt, refs),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
     )
