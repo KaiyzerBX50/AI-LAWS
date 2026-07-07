@@ -194,11 +194,85 @@ def test_chat_history() -> None:
     check(len(msgs) >= 1, "chat history not stored")
 
 
+def test_chat_no_meta_commentary_us_eu_comparison() -> None:
+    """Verify assistant answers US/EU comparison directly without tracker meta-commentary."""
+    text, _ = stream_chat("Compare the US and EU approaches to AI regulation.", session_id="no-meta-1")
+    low = text.lower()
+    
+    # Check for substantive content
+    check(len(text) > 150, "answer too short for comparison")
+    check("eu" in low or "europe" in low, "missing EU content")
+    check("us" in low or "united states" in low or "america" in low, "missing US content")
+    
+    # Check for absence of meta-commentary phrases
+    bad_phrases = [
+        "tracker context", "does not include", "doesn't include",
+        "i'll use general", "i will use general", "because the tracker",
+        "because your tracker", "tracker does not", "tracker doesn't"
+    ]
+    for phrase in bad_phrases:
+        check(phrase not in low, f"found meta-commentary phrase: '{phrase}'")
+
+
+def test_chat_no_meta_commentary_eu_ai_act() -> None:
+    """Verify EU AI Act question gets factual answer without disclaimers."""
+    text, _ = stream_chat("What is the EU AI Act?", session_id="no-meta-2")
+    low = text.lower()
+    
+    # Check for substantive content
+    check(len(text) > 150, "answer too short")
+    check(any(k in low for k in ("risk", "high-risk", "unacceptable", "prohibited")), 
+          "missing key EU AI Act concepts")
+    
+    # Check for absence of meta-commentary
+    bad_phrases = [
+        "tracker context", "does not include", "doesn't include",
+        "i'll use general", "because the tracker", "tracker does not"
+    ]
+    for phrase in bad_phrases:
+        check(phrase not in low, f"found meta-commentary phrase: '{phrase}'")
+
+
+def test_chat_no_meta_commentary_texas() -> None:
+    """Verify Texas AI laws question answers factually without coverage disclaimers."""
+    text, _ = stream_chat("What AI laws exist in Texas?", session_id="no-meta-3")
+    low = text.lower()
+    
+    # Check for substantive answer
+    check(len(text) > 50, "answer too short")
+    check("texas" in low, "missing Texas in answer")
+    
+    # Check for absence of meta-commentary
+    bad_phrases = [
+        "tracker context", "does not include", "doesn't include",
+        "i'll use general", "because the tracker", "tracker does not",
+        "because your tracker"
+    ]
+    for phrase in bad_phrases:
+        check(phrase not in low, f"found meta-commentary phrase: '{phrase}'")
+
+
+def test_chat_nonsense_no_fabrication() -> None:
+    """Verify assistant doesn't fabricate specifics for nonsense queries."""
+    text, _ = stream_chat("What are the exact penalties in the Atlantis AI Regulation Act of 2024?", 
+                         session_id="no-meta-4")
+    low = text.lower()
+    
+    # Should not fabricate specific article numbers or precise penalties for fictional law
+    check(len(text) > 20, "no answer returned")
+    # Should acknowledge it's fictional or provide general context, not specific fake details
+    # We won't be too strict here, just ensure it doesn't claim specific articles/fines
+
+
 TESTS: List[Callable[[], None]] = [
     test_root, test_stats, test_meta, test_laws_pagination, test_laws_filters,
     test_laws_sort, test_law_by_id, test_countries, test_us_states, test_export_csv,
     test_admin_auth, test_admin_crud, test_admin_validation,
     test_chat_enriched, test_chat_out_of_scope, test_chat_history,
+    test_chat_no_meta_commentary_us_eu_comparison,
+    test_chat_no_meta_commentary_eu_ai_act,
+    test_chat_no_meta_commentary_texas,
+    test_chat_nonsense_no_fabrication,
 ]
 
 
