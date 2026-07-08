@@ -67,6 +67,38 @@ function Tracker() {
   const [loadingMore, setLoadingMore] = useState(false);
   const debounceRef = useRef(null);
 
+  // Cursor-following "liquid glass" spotlight — sets --gx/--gy on the
+  // glass surface under the pointer so a soft highlight tracks the cursor.
+  useEffect(() => {
+    let raf = 0;
+    let lastEl = null;
+    const clear = (el) => {
+      if (!el) return;
+      el.style.removeProperty('--gx');
+      el.style.removeProperty('--gy');
+    };
+    const onMove = (e) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = e.target.closest ? e.target.closest('.glass') : null;
+        if (lastEl && lastEl !== el) clear(lastEl);
+        if (el) {
+          const r = el.getBoundingClientRect();
+          el.style.setProperty('--gx', `${e.clientX - r.left}px`);
+          el.style.setProperty('--gy', `${e.clientY - r.top}px`);
+          lastEl = el;
+        } else {
+          lastEl = null;
+        }
+      });
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   const loadReference = useCallback(() => {
     getMeta().then(setMeta).catch(() => {});
     getStats().then(setStats).catch(() => {});

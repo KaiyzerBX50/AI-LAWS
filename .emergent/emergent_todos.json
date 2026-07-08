@@ -1,22 +1,22 @@
 [
   {
-    "content": "Build Web Audio sound system (SoundContext + global hover/click sounds + mute toggle persisted)",
+    "content": "Add ambient space soundscape engine to SoundContext (evolving pad, fade in/out, persisted)",
     "status": "completed"
   },
   {
-    "content": "Add SoundToggle component and wire into header + App tab/toggle events",
+    "content": "Rebuild SoundToggle as a popover with Interface sounds + Ambient space switches",
     "status": "completed"
   },
   {
-    "content": "Enhance CosmicBackground with shooting stars, floating orbs, nebula, parallax",
+    "content": "Push glass further: cursor-following spotlight highlight + richer hover glow",
     "status": "completed"
   },
   {
-    "content": "Upgrade .glass utilities to Apple Liquid Glass (specular highlights, edge glow, heavy blur)",
+    "content": "Rebuild ChartsPanel into a wow 'data observatory' (composed hero, radial bars, radar, neon glow)",
     "status": "completed"
   },
   {
-    "content": "Verify compile (esbuild), screenshot, and test",
+    "content": "Verify compile, screenshots (light+dark), no console errors",
     "status": "completed"
   }
 ]

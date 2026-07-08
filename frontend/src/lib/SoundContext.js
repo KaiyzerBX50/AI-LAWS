@@ -15,21 +15,26 @@ const SoundContext = createContext({
   enabled: true,
   toggle: () => {},
   play: () => {},
+  ambient: false,
+  toggleAmbient: () => {},
 });
 
 const STORAGE_KEY = 'sound-enabled';
+const AMBIENT_KEY = 'ambient-enabled';
 
 export const SoundProvider = ({ children }) => {
   const [enabled, setEnabled] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved === null ? true : saved === 'true';
   });
+  const [ambient, setAmbient] = useState(() => localStorage.getItem(AMBIENT_KEY) === 'true');
 
   const ctxRef = useRef(null);
   const masterRef = useRef(null);
   const enabledRef = useRef(enabled);
   const lastHoverRef = useRef(0);
   const lastPlayRef = useRef({});
+  const ambientRef = useRef(null);
 
   useEffect(() => {
     enabledRef.current = enabled;
@@ -140,6 +145,107 @@ export const SoundProvider = ({ children }) => {
     }
   };
 
+  // ---- Ambient space soundscape: an evolving, breathing pad ----
+  const startAmbient = () => {
+    const ctx = ensureCtx();
+    if (!ctx || ambientRef.current) return;
+    const now = ctx.currentTime;
+
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, now);
+    out.gain.exponentialRampToValueAtTime(0.11, now + 5); // slow swell
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 520;
+    lp.Q.value = 0.8;
+    out.connect(lp);
+    lp.connect(masterRef.current);
+
+    // detuned drone stack (A1 · E2 · A2 · C#3 · E3)
+    const freqs = [55, 82.41, 110, 138.59, 164.81];
+    const oscs = freqs.map((f, i) => {
+      const o = ctx.createOscillator();
+      o.type = i % 2 ? 'sine' : 'triangle';
+      o.frequency.value = f;
+      o.detune.value = (i - 2) * 5;
+      const g = ctx.createGain();
+      g.gain.value = (i === 0 ? 0.32 : 0.2) / freqs.length;
+      o.connect(g);
+      g.connect(out);
+      o.start(now);
+      return o;
+    });
+
+    // slow filter sweep — the "breathing" motion
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.045;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 240;
+    lfo.connect(lfoGain);
+    lfoGain.connect(lp.frequency);
+    lfo.start(now);
+
+    // gentle tremolo shimmer
+    const trem = ctx.createOscillator();
+    trem.frequency.value = 0.11;
+    const tremGain = ctx.createGain();
+    tremGain.gain.value = 0.025;
+    trem.connect(tremGain);
+    tremGain.connect(out.gain);
+    trem.start(now);
+
+    // occasional twinkle "stardust" over the pad
+    const twinkle = setInterval(() => {
+      if (!ambientRef.current) return;
+      const t = ctx.currentTime;
+      const note = [1046.5, 1318.5, 1567.98, 2093][Math.floor(Math.random() * 4)];
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = note;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.02, t + 0.4);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+      o.connect(g);
+      g.connect(masterRef.current);
+      o.start(t);
+      o.stop(t + 2.6);
+    }, 6500);
+
+    ambientRef.current = { out, lp, oscs, lfo, trem, tremGain, twinkle };
+  };
+
+  const stopAmbient = () => {
+    const a = ambientRef.current;
+    const ctx = ctxRef.current;
+    if (!a || !ctx) return;
+    ambientRef.current = null;
+    clearInterval(a.twinkle);
+    const now = ctx.currentTime;
+    try {
+      a.tremGain.gain.value = 0;
+      a.out.gain.cancelScheduledValues(now);
+      a.out.gain.setValueAtTime(Math.max(0.0002, a.out.gain.value), now);
+      a.out.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+    } catch (e) { /* noop */ }
+    setTimeout(() => {
+      try {
+        a.oscs.forEach((o) => o.stop());
+        a.lfo.stop();
+        a.trem.stop();
+      } catch (e) { /* noop */ }
+    }, 1800);
+  };
+
+  useEffect(() => {
+    localStorage.setItem(AMBIENT_KEY, String(ambient));
+    if (ambient) startAmbient();
+    else stopAmbient();
+    return () => {};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ambient]);
+
   // Global delegated feedback for hover + click on interactive elements.
   useEffect(() => {
     const isInteractive = (el) =>
@@ -176,9 +282,15 @@ export const SoundProvider = ({ children }) => {
   }, []);
 
   const value = useMemo(
-    () => ({ enabled, toggle: () => setEnabled((v) => !v), play }),
+    () => ({
+      enabled,
+      toggle: () => setEnabled((v) => !v),
+      play,
+      ambient,
+      toggleAmbient: () => setAmbient((v) => !v),
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [enabled]
+    [enabled, ambient]
   );
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
