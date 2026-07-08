@@ -1,38 +1,22 @@
 [
   {
-    "content": "#2 identity comparisons: verified all are correct `is None` idioms — no change (would be wrong)",
+    "content": "Build Web Audio sound system (SoundContext + global hover/click sounds + mute toggle persisted)",
     "status": "completed"
   },
   {
-    "content": "compute_maturity(): split out _is_comprehensive() helper (lower complexity)",
+    "content": "Add SoundToggle component and wire into header + App tab/toggle events",
     "status": "completed"
   },
   {
-    "content": "_matches(): split into _match_search/_match_exact/_match_years predicates",
+    "content": "Enhance CosmicBackground with shooting stars, floating orbs, nebula, parallax",
     "status": "completed"
   },
   {
-    "content": "chat(): decomposed into _sse/_store_message/_recent_history_text/_build_prompt/_stream_answer",
+    "content": "Upgrade .glass utilities to Apple Liquid Glass (specular highlights, edge glow, heavy blur)",
     "status": "completed"
   },
   {
-    "content": "build_dataset.py parse_nonus_row: _clean() helper (identical output)",
-    "status": "completed"
-  },
-  {
-    "content": "backend_test.py: rewritten into modular typed test functions + thin runner",
-    "status": "completed"
-  },
-  {
-    "content": "LawFilterParams 10-param __init__: kept (FastAPI 0.110 needs it for query binding) — noted",
-    "status": "completed"
-  },
-  {
-    "content": "Fix LOW a11y warning (DialogTitle during loading state)",
-    "status": "completed"
-  },
-  {
-    "content": "Verify with testing agent (iteration_7: zero regressions)",
+    "content": "Verify compile (esbuild), screenshot, and test",
     "status": "completed"
   }
 ]

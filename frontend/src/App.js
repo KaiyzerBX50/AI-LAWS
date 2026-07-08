@@ -2,7 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import '@/App.css';
 import { ThemeProvider } from '@/lib/ThemeContext';
+import { SoundProvider } from '@/lib/SoundContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SoundToggle } from '@/components/SoundToggle';
 import { CosmicBackground } from '@/components/CosmicBackground';
 import { WorldMap } from '@/components/WorldMap';
 import { UsStatesMap } from '@/components/UsStatesMap';
@@ -145,6 +147,10 @@ function Tracker() {
     toast.success('Shareable link copied to clipboard');
   };
 
+  const handleTabChange = (v) => {
+    setTab(v);
+  };
+
   const TABS = [
     { v: 'explore', label: 'Explore', icon: Map, tid: TRACKER.navMap },
     { v: 'browse', label: 'Browse', icon: LayoutGrid, tid: TRACKER.navBrowse },
@@ -159,7 +165,7 @@ function Tracker() {
       <Toaster position="top-center" />
 
       {/* Header */}
-      <header className="glass sticky top-0 z-40 border-b border-border/60">
+      <header className="glass glass-shimmer relative overflow-hidden sticky top-0 z-40 border-b border-border/60">
         <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="animated-border relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground glow-ring">
@@ -186,11 +192,13 @@ function Tracker() {
               type="button"
               onClick={() => setAdminOpen(true)}
               data-testid={TRACKER.adminButton}
+              data-sound="open"
               aria-label="Open admin panel"
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
             >
               <Shield className="h-4 w-4" />
             </button>
+            <SoundToggle />
             <ThemeToggle />
           </div>
         </div>
@@ -222,13 +230,14 @@ function Tracker() {
 
       {/* Main */}
       <main className="mx-auto max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+        <Tabs value={tab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="glass flex h-auto w-full flex-wrap justify-start gap-1 rounded-2xl p-1.5">
             {TABS.map(({ v, label, icon: Icon, tid }) => (
               <TabsTrigger
                 key={v}
                 value={v}
                 data-testid={tid}
+                data-sound="tab"
                 className="gap-1.5 rounded-xl px-4 py-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
               >
                 <Icon className="h-4 w-4" /> {label}
@@ -370,7 +379,9 @@ function Tracker() {
 function App() {
   return (
     <ThemeProvider>
-      <Tracker />
+      <SoundProvider>
+        <Tracker />
+      </SoundProvider>
     </ThemeProvider>
   );
 }

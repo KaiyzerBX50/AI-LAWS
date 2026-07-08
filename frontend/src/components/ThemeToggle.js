@@ -10,6 +10,7 @@ export const ThemeToggle = () => {
       type="button"
       onClick={toggle}
       data-testid={TRACKER.themeToggle}
+      data-sound="toggle"
       aria-label={isDark ? 'Switch to day mode' : 'Switch to night mode'}
       className="relative inline-flex h-9 w-16 items-center rounded-full border border-border bg-secondary transition-colors duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >

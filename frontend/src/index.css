@@ -110,7 +110,10 @@
     inset: 0;
     z-index: -2;
     overflow: hidden;
-    background:
+    /* Solid themed base so the sky is always correct even if body's
+       background-color lags behind a CSS-variable theme change. */
+    background-color: hsl(var(--background));
+    background-image:
         radial-gradient(1200px circle at 12% -5%, hsl(var(--glow) / 0.14), transparent 45%),
         radial-gradient(1000px circle at 88% 0%, hsl(var(--glow-2) / 0.12), transparent 45%),
         radial-gradient(900px circle at 50% 110%, hsl(var(--primary) / 0.10), transparent 55%);
@@ -149,24 +152,101 @@
     animation: drift1 30s ease-in-out infinite reverse;
 }
 
-/* Twinkling star layer — mostly visible in dark mode */
+/* Slowly rotating nebula sweep for large-scale drama */
+.nebula {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 160vmax; height: 160vmax;
+    transform: translate(-50%, -50%);
+    background:
+        conic-gradient(from 0deg,
+            hsl(var(--glow) / 0.05),
+            hsl(var(--glow-2) / 0.08),
+            transparent 30%,
+            hsl(var(--primary) / 0.06) 55%,
+            transparent 75%,
+            hsl(var(--accent) / 0.06) 90%,
+            hsl(var(--glow) / 0.05));
+    filter: blur(40px);
+    opacity: 0.5;
+    will-change: transform;
+    animation: nebula-spin 90s linear infinite;
+}
+.dark .nebula { opacity: 0.8; }
+
+/* Twinkling star layers — parallax reacts to pointer via --px/--py */
 .starfield {
     position: absolute;
-    inset: 0;
-    background-image:
-        radial-gradient(1.5px 1.5px at 20% 30%, hsl(var(--foreground) / 0.9), transparent),
-        radial-gradient(1.5px 1.5px at 75% 20%, hsl(var(--foreground) / 0.7), transparent),
-        radial-gradient(1px 1px at 40% 70%, hsl(var(--foreground) / 0.8), transparent),
-        radial-gradient(1px 1px at 60% 50%, hsl(var(--foreground) / 0.6), transparent),
-        radial-gradient(1.5px 1.5px at 90% 80%, hsl(var(--foreground) / 0.7), transparent),
-        radial-gradient(1px 1px at 10% 85%, hsl(var(--foreground) / 0.6), transparent),
-        radial-gradient(1px 1px at 50% 15%, hsl(var(--foreground) / 0.7), transparent);
+    inset: -4%;
     background-repeat: repeat;
-    background-size: 380px 380px;
     opacity: 0;
-    animation: twinkle 6s ease-in-out infinite;
+    will-change: transform, opacity;
 }
-.dark .starfield { opacity: 0.5; }
+.star-far {
+    background-image:
+        radial-gradient(1px 1px at 20% 30%, hsl(var(--foreground) / 0.8), transparent),
+        radial-gradient(1px 1px at 75% 20%, hsl(var(--foreground) / 0.6), transparent),
+        radial-gradient(1px 1px at 40% 70%, hsl(var(--foreground) / 0.7), transparent),
+        radial-gradient(1px 1px at 60% 50%, hsl(var(--foreground) / 0.5), transparent),
+        radial-gradient(1px 1px at 10% 85%, hsl(var(--foreground) / 0.6), transparent),
+        radial-gradient(1px 1px at 50% 15%, hsl(var(--foreground) / 0.6), transparent);
+    background-size: 340px 340px;
+    transform: translate(calc(var(--px, 0) * 6px), calc(var(--py, 0) * 6px));
+    animation: twinkle 7s ease-in-out infinite;
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.star-near {
+    background-image:
+        radial-gradient(1.6px 1.6px at 15% 45%, hsl(var(--glow) / 0.95), transparent),
+        radial-gradient(2px 2px at 82% 35%, hsl(var(--foreground) / 0.95), transparent),
+        radial-gradient(1.6px 1.6px at 55% 80%, hsl(var(--glow-2) / 0.9), transparent),
+        radial-gradient(1.6px 1.6px at 35% 12%, hsl(var(--foreground) / 0.9), transparent),
+        radial-gradient(2px 2px at 92% 72%, hsl(var(--glow) / 0.85), transparent);
+    background-size: 520px 520px;
+    transform: translate(calc(var(--px, 0) * 16px), calc(var(--py, 0) * 16px));
+    animation: twinkle 4.5s ease-in-out infinite reverse;
+    transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dark .star-far { opacity: 0.55; }
+.dark .star-near { opacity: 0.7; }
+.star-far { opacity: 0.12; }
+.star-near { opacity: 0.18; }
+
+/* Floating luminous orbs */
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(2px);
+    opacity: 0.55;
+    will-change: transform, opacity;
+    box-shadow: 0 0 22px 6px hsl(var(--glow) / 0.35);
+}
+.orb-1 { width: 8px; height: 8px; left: 18%; top: 62%;
+    background: hsl(var(--glow) / 0.9); animation: float-orb 16s ease-in-out infinite; }
+.orb-2 { width: 5px; height: 5px; left: 68%; top: 30%;
+    background: hsl(var(--glow-2) / 0.9); box-shadow: 0 0 18px 5px hsl(var(--glow-2) / 0.35);
+    animation: float-orb 21s ease-in-out infinite reverse; }
+.orb-3 { width: 10px; height: 10px; left: 82%; top: 66%;
+    background: hsl(var(--accent) / 0.85); box-shadow: 0 0 24px 7px hsl(var(--accent) / 0.3);
+    animation: float-orb 26s ease-in-out infinite; }
+.orb-4 { width: 6px; height: 6px; left: 40%; top: 22%;
+    background: hsl(var(--primary) / 0.9); animation: float-orb 19s ease-in-out infinite reverse; }
+
+/* Shooting stars — a bright head with a trailing streak */
+.shooting-star {
+    position: absolute;
+    width: 130px; height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, hsl(var(--foreground) / 0.9), hsl(var(--glow) / 0.6) 40%, transparent);
+    filter: drop-shadow(0 0 6px hsl(var(--glow) / 0.8));
+    opacity: 0;
+    transform: rotate(18deg);
+    will-change: transform, opacity;
+}
+.shoot-1 { top: 12%; left: 8%;  animation: shoot 9s ease-in 2s infinite; }
+.shoot-2 { top: 26%; left: 42%; animation: shoot 12s ease-in 6s infinite; }
+.shoot-3 { top: 6%;  left: 66%; animation: shoot 15s ease-in 11s infinite; }
+.dark .shooting-star { background: linear-gradient(90deg, #fff, hsl(var(--glow) / 0.7) 40%, transparent); }
 
 @keyframes drift1 {
     0%, 100% { transform: translate(0, 0) scale(1); }
@@ -177,33 +257,103 @@
     50% { transform: translate(-5vw, 6vh) scale(0.92); }
 }
 @keyframes twinkle {
-    0%, 100% { opacity: 0.35; }
-    50% { opacity: 0.6; }
+    0%, 100% { opacity: var(--tw-min, 0.25); }
+    50% { opacity: var(--tw-max, 0.55); }
+}
+@keyframes nebula-spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes float-orb {
+    0%, 100% { transform: translate(0, 0); opacity: 0.35; }
+    25% { transform: translate(24px, -30px); opacity: 0.7; }
+    50% { transform: translate(-16px, -54px); opacity: 0.5; }
+    75% { transform: translate(-30px, -22px); opacity: 0.65; }
+}
+@keyframes shoot {
+    0% { opacity: 0; transform: translate(0, 0) rotate(18deg) scaleX(0.4); }
+    3% { opacity: 1; }
+    18% { opacity: 1; }
+    28% { opacity: 0; transform: translate(60vw, 24vh) rotate(18deg) scaleX(1); }
+    100% { opacity: 0; transform: translate(60vw, 24vh) rotate(18deg) scaleX(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-    .aurora-blob, .starfield { animation: none !important; }
+    .aurora-blob, .starfield, .nebula, .orb, .shooting-star { animation: none !important; }
+    .shooting-star { display: none; }
 }
 
-/* ---------------- Glass + glow utilities ---------------- */
+/* ---------------- Apple-style Liquid Glass ---------------- */
+/* Layered translucency: heavy blur + saturation, a bright specular top edge
+   baked into the background gradient + inset rim, and a soft lifting shadow.
+   NOTE: we deliberately avoid setting position/::after on the base .glass so
+   we never override Tailwind's `.sticky`/`.relative` utilities on consumers. */
 .glass {
-    background: hsl(var(--card) / 0.72);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    border: 1px solid hsl(var(--border) / 0.8);
+    background:
+        linear-gradient(125deg, hsl(0 0% 100% / 0.12), transparent 34%),
+        linear-gradient(180deg, hsl(var(--card) / 0.55), hsl(var(--card) / 0.80));
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid hsl(var(--foreground) / 0.10);
+    box-shadow:
+        inset 0 1px 0 hsl(0 0% 100% / 0.55),
+        inset 0 0 0 1px hsl(0 0% 100% / 0.04),
+        0 10px 34px -14px hsl(var(--shadow-color) / calc(var(--shadow-alpha) + 0.05));
 }
 .dark .glass {
-    background: hsl(var(--card) / 0.55);
-    border: 1px solid hsl(var(--foreground) / 0.08);
+    background:
+        linear-gradient(125deg, hsl(0 0% 100% / 0.10), transparent 34%),
+        linear-gradient(180deg, hsl(var(--card) / 0.42), hsl(var(--card) / 0.64));
+    border: 1px solid hsl(var(--foreground) / 0.12);
+    box-shadow:
+        inset 0 1px 0 hsl(0 0% 100% / 0.14),
+        inset 0 0 0 1px hsl(0 0% 100% / 0.03),
+        0 16px 44px -18px hsl(0 0% 0% / 0.65);
 }
+
+/* Opt-in animated liquid sheen — only for large hero/marquee surfaces.
+   The consumer must also be positioned (add `relative overflow-hidden`). */
+.glass-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    background: linear-gradient(120deg,
+        transparent 20%,
+        hsl(0 0% 100% / 0.10) 42%,
+        hsl(0 0% 100% / 0.22) 50%,
+        hsl(0 0% 100% / 0.10) 58%,
+        transparent 80%);
+    background-size: 240% 240%;
+    opacity: 0.45;
+    animation: glass-sheen 9s ease-in-out infinite;
+}
+
 .glass-strong {
-    background: hsl(var(--card) / 0.9);
-    backdrop-filter: blur(20px) saturate(150%);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    border: 1px solid hsl(var(--border) / 0.9);
+    background:
+        linear-gradient(125deg, hsl(0 0% 100% / 0.14), transparent 32%),
+        linear-gradient(180deg, hsl(var(--card) / 0.80), hsl(var(--card) / 0.94));
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid hsl(var(--foreground) / 0.12);
+    box-shadow:
+        inset 0 1px 0 hsl(0 0% 100% / 0.6),
+        0 24px 60px -22px hsl(var(--shadow-color) / calc(var(--shadow-alpha) + 0.1));
 }
 .dark .glass-strong {
-    background: hsl(var(--card) / 0.82);
-    border: 1px solid hsl(var(--foreground) / 0.1);
+    background: linear-gradient(180deg, hsl(var(--card) / 0.72), hsl(var(--card) / 0.9));
+    border: 1px solid hsl(var(--foreground) / 0.14);
+    box-shadow:
+        inset 0 1px 0 hsl(0 0% 100% / 0.16),
+        0 28px 70px -24px hsl(0 0% 0% / 0.7);
+}
+@keyframes glass-sheen {
+    0%, 100% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .glass-shimmer::after { animation: none; }
 }
 .glow-ring {
     box-shadow: 0 0 0 1px hsl(var(--glow) / 0.25),

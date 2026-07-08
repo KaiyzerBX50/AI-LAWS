@@ -33,6 +33,7 @@ export const FiltersBar = ({ meta, filters, setFilters, onReset, onExport, onSha
             size="sm"
             onClick={onShare}
             data-testid={TRACKER.shareButton}
+            data-sound="success"
             className="gap-1.5 border-border/60 bg-background/40"
           >
             <Share2 className="h-4 w-4" /> Share
@@ -42,6 +43,7 @@ export const FiltersBar = ({ meta, filters, setFilters, onReset, onExport, onSha
             size="sm"
             onClick={onExport}
             data-testid={TRACKER.exportButton}
+            data-sound="success"
             className="gap-1.5 border-border/60 bg-background/40"
           >
             <Download className="h-4 w-4" /> CSV
