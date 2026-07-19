@@ -1,18 +1,18 @@
 [
   {
-    "content": "Research verifiable 2025-26 state AI + chatbot/companion bills (enacted/vetoed/pending) with sources",
+    "content": "Research verifiable US federal AI bills + executive actions with sources",
     "status": "completed"
   },
   {
-    "content": "De-dupe against existing dataset",
+    "content": "De-dupe against dataset (all 9 confirmed new)",
     "status": "completed"
   },
   {
-    "content": "Add 7 new sourced entries (VA HB2094, CT SB2, CA SB1047, CA AB1064 vetoed/failed; CA AB410, NY S7263, OR SB1546 pending)",
+    "content": "Add 9 federal entries (6 bills incl. proposed + expired; EO 14110, EO 14179, AI Action Plan)",
     "status": "completed"
   },
   {
-    "content": "Reseed (v2025.3) + verify counts, filters (Proposed/Superseded/level), chatbot search",
+    "content": "Reseed v2025.4 + verify (396 total, Federal 14, frontend renders)",
     "status": "completed"
   }
 ]
