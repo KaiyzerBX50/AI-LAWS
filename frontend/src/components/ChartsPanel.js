@@ -6,6 +6,7 @@ import {
   Area,
   Bar,
   Line,
+  BarChart,
   PieChart,
   Pie,
   Cell,
@@ -25,7 +26,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { useTheme } from '@/lib/ThemeContext';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
-import { TrendingUp, Layers, Compass, Activity } from 'lucide-react';
+import { TrendingUp, Layers, Compass, Activity, Landmark } from 'lucide-react';
 
 const reveal = {
   initial: { opacity: 0, y: 24 },
@@ -129,6 +130,17 @@ export const ChartsPanel = ({ stats }) => {
     .map((name) => ({ name, value: stats.by_status[name] }));
   const statusTotal = statusData.reduce((s, d) => s + d.value, 0);
   const activeStatus = activeStatusIdx != null ? statusData[activeStatusIdx] : null;
+
+  const levelOrder = ['Federal', 'State', 'City', 'National', 'International'];
+  const levelData = (stats.level_status || [])
+    .slice()
+    .sort((a, b) => levelOrder.indexOf(a.level) - levelOrder.indexOf(b.level))
+    .map((d) => ({
+      level: d.level,
+      Enacted: d.Enacted || 0,
+      Proposed: (d.Proposed || 0) + (d.Draft || 0),
+      total: (d.Enacted || 0) + (d.Proposed || 0) + (d.Draft || 0) + (d.Superseded || 0),
+    }));
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-6">
@@ -392,6 +404,60 @@ export const ChartsPanel = ({ stats }) => {
                 </button>
               );
             })}
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* ============ Coverage by government level ============ */}
+      <motion.div {...reveal} transition={{ duration: 0.5, delay: 0.24 }} className="lg:col-span-6">
+        <Card className="glass glass-interactive rounded-2xl p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-primary" />
+              <div>
+                <h3 className="font-display text-sm font-semibold text-foreground">
+                  Coverage by government level
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Federal, state, city, national &amp; international — enacted vs. proposed
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.status.Enacted }} />
+                Enacted
+              </span>
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.status.Proposed }} />
+                Proposed / pending
+              </span>
+            </div>
+          </div>
+          <div className="chart-neon">
+            <ResponsiveContainer width="100%" height={Math.max(160, levelData.length * 46)}>
+              <BarChart
+                data={levelData}
+                layout="vertical"
+                margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
+                barCategoryGap={14}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={c.grid} horizontal={false} />
+                <XAxis type="number" stroke={c.axis} fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                <YAxis
+                  type="category"
+                  dataKey="level"
+                  stroke={c.axis}
+                  fontSize={12}
+                  width={82}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip content={<GlassTooltip />} cursor={{ fill: c.grid }} />
+                <Bar dataKey="Enacted" stackId="a" fill={c.status.Enacted} radius={[4, 0, 0, 4]} isAnimationActive={false} barSize={20} />
+                <Bar dataKey="Proposed" stackId="a" fill={c.status.Proposed} radius={[0, 4, 4, 0]} isAnimationActive={false} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </Card>
       </motion.div>

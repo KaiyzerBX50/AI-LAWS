@@ -1,22 +1,26 @@
 [
   {
-    "content": "Add ambient space soundscape engine to SoundContext (evolving pad, fade in/out, persisted)",
+    "content": "Audit current dataset coverage (levels, proposed vs enacted, chatbot/city/federal gaps)",
     "status": "completed"
   },
   {
-    "content": "Rebuild SoundToggle as a popover with Interface sounds + Ambient space switches",
+    "content": "Research verifiable federal/city/proposed/chatbot bills with sources",
     "status": "completed"
   },
   {
-    "content": "Push glass further: cursor-following spotlight highlight + richer hover glow",
+    "content": "Add curated web-sourced supplemental seed (5 federal, 2 city, 1 state proposed) with source links + verify notes",
     "status": "completed"
   },
   {
-    "content": "Rebuild ChartsPanel into a wow 'data observatory' (composed hero, radial bars, radar, neon glow)",
+    "content": "Backend: add Government level dimension (Federal/State/City/National/International) + backfill + filter + meta + stats",
     "status": "completed"
   },
   {
-    "content": "Verify compile, screenshots (light+dark), no console errors",
+    "content": "Frontend: add Level filter + 'Coverage by government level' chart (enacted vs proposed)",
+    "status": "completed"
+  },
+  {
+    "content": "Verify: 380 entries, level filter end-to-end, charts render, no console errors",
     "status": "completed"
   }
 ]

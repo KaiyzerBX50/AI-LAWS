@@ -28,14 +28,14 @@ import { Orbit, Map, LayoutGrid, Clock, GitCompareArrows, Sparkle, ScrollText, G
 import { TRACKER } from '@/constants/testIds';
 
 const DEFAULT_FILTERS = {
-  search: '', group: 'all', region: 'all', status: 'all', category: 'all', sort: 'newest',
+  search: '', group: 'all', level: 'all', region: 'all', status: 'all', category: 'all', sort: 'newest',
 };
 const PAGE = 60;
 
 const readUrl = () => {
   const p = new URLSearchParams(window.location.search);
   const f = { ...DEFAULT_FILTERS };
-  ['search', 'group', 'region', 'status', 'category', 'sort'].forEach((k) => {
+  ['search', 'group', 'level', 'region', 'status', 'category', 'sort'].forEach((k) => {
     if (p.get(k)) f[k] = p.get(k);
   });
   return { filters: f, tab: p.get('tab') || 'explore' };

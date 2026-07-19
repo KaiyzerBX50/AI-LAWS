@@ -61,7 +61,7 @@ export const FiltersBar = ({ meta, filters, setFilters, onReset, onExport, onSha
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Select value={filters.group} onValueChange={(v) => update('group', v)}>
           <SelectTrigger data-testid={TRACKER.filterGroup} className="border-border/60 bg-background/50">
             <SelectValue placeholder="Scope" />
@@ -70,6 +70,18 @@ export const FiltersBar = ({ meta, filters, setFilters, onReset, onExport, onSha
             <SelectItem value="all">All scopes</SelectItem>
             {meta?.groups?.map((g) => (
               <SelectItem key={g} value={g}>{g}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filters.level} onValueChange={(v) => update('level', v)}>
+          <SelectTrigger data-testid="filter-level" className="border-border/60 bg-background/50">
+            <SelectValue placeholder="Level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All levels</SelectItem>
+            {meta?.levels?.map((lv) => (
+              <SelectItem key={lv} value={lv}>{lv}</SelectItem>
             ))}
           </SelectContent>
         </Select>
