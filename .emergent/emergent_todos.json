@@ -1,18 +1,18 @@
 [
   {
-    "content": "Research verifiable US state pending bills (IL, MA, HI, WA, NJ) + global (Brazil/UK/Canada/India/Australia)",
+    "content": "Research more state pending bills (CA, PA, NY, GA, NJ, MD)",
     "status": "completed"
   },
   {
-    "content": "De-dupe global against dataset (only UK + India new; Brazil/Australia/Canada/DIA already present)",
+    "content": "De-dupe (MD HB820/HB956, CA AB853 already present — skipped)",
     "status": "completed"
   },
   {
-    "content": "Add 12 entries (10 US state pending + UK lapsed bill + India ethics bill)",
+    "content": "Add 11 entries incl. 2 new states (Pennsylvania, Georgia) + more CA/NY/NJ",
     "status": "completed"
   },
   {
-    "content": "Reseed v2025.5 + verify (408 total, State 162, Proposed 29, frontend renders)",
+    "content": "Reseed v2025.6 + verify (419 total, Proposed 38, app healthy)",
     "status": "completed"
   }
 ]
