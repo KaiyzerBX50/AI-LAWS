@@ -1,18 +1,18 @@
 [
   {
-    "content": "Research more state pending bills (CA, PA, NY, GA, NJ, MD)",
+    "content": "Research + add 12 more state bills (OH, MN, AZ, MI, WI, CT) covering 6 new states",
     "status": "completed"
   },
   {
-    "content": "De-dupe (MD HB820/HB956, CA AB853 already present — skipped)",
+    "content": "Reseed v2025.7 (431 total, Proposed 46)",
     "status": "completed"
   },
   {
-    "content": "Add 11 entries incl. 2 new states (Pennsylvania, Georgia) + more CA/NY/NJ",
+    "content": "UI: add governance Level badge (Federal/State/City/National/International) to law cards",
     "status": "completed"
   },
   {
-    "content": "Reseed v2025.6 + verify (419 total, Proposed 38, app healthy)",
+    "content": "Verify compile + render (60 badges, app healthy)",
     "status": "completed"
   }
 ]
