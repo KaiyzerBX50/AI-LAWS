@@ -91,7 +91,7 @@ async def reload_laws():
         _country_index_cache = None
 
 
-DATASET_VERSION = "2025.2"  # bump to force a reseed when laws_dataset.json changes
+DATASET_VERSION = "2025.3"  # bump to force a reseed when laws_dataset.json changes
 
 
 @app.on_event("startup")

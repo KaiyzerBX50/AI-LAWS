@@ -1,26 +1,18 @@
 [
   {
-    "content": "Audit current dataset coverage (levels, proposed vs enacted, chatbot/city/federal gaps)",
+    "content": "Research verifiable 2025-26 state AI + chatbot/companion bills (enacted/vetoed/pending) with sources",
     "status": "completed"
   },
   {
-    "content": "Research verifiable federal/city/proposed/chatbot bills with sources",
+    "content": "De-dupe against existing dataset",
     "status": "completed"
   },
   {
-    "content": "Add curated web-sourced supplemental seed (5 federal, 2 city, 1 state proposed) with source links + verify notes",
+    "content": "Add 7 new sourced entries (VA HB2094, CT SB2, CA SB1047, CA AB1064 vetoed/failed; CA AB410, NY S7263, OR SB1546 pending)",
     "status": "completed"
   },
   {
-    "content": "Backend: add Government level dimension (Federal/State/City/National/International) + backfill + filter + meta + stats",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: add Level filter + 'Coverage by government level' chart (enacted vs proposed)",
-    "status": "completed"
-  },
-  {
-    "content": "Verify: 380 entries, level filter end-to-end, charts render, no console errors",
+    "content": "Reseed (v2025.3) + verify counts, filters (Proposed/Superseded/level), chatbot search",
     "status": "completed"
   }
 ]
