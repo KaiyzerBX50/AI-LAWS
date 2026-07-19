@@ -1,18 +1,18 @@
 [
   {
-    "content": "Research verifiable US federal AI bills + executive actions with sources",
+    "content": "Research verifiable US state pending bills (IL, MA, HI, WA, NJ) + global (Brazil/UK/Canada/India/Australia)",
     "status": "completed"
   },
   {
-    "content": "De-dupe against dataset (all 9 confirmed new)",
+    "content": "De-dupe global against dataset (only UK + India new; Brazil/Australia/Canada/DIA already present)",
     "status": "completed"
   },
   {
-    "content": "Add 9 federal entries (6 bills incl. proposed + expired; EO 14110, EO 14179, AI Action Plan)",
+    "content": "Add 12 entries (10 US state pending + UK lapsed bill + India ethics bill)",
     "status": "completed"
   },
   {
-    "content": "Reseed v2025.4 + verify (396 total, Federal 14, frontend renders)",
+    "content": "Reseed v2025.5 + verify (408 total, State 162, Proposed 29, frontend renders)",
     "status": "completed"
   }
 ]
