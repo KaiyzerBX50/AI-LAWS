@@ -1,22 +1,18 @@
 [
   {
-    "content": "Frost dropdown primitives globally (Select + DropdownMenu) with backdrop blur",
+    "content": "Add animated glass sheen to hero stat cards",
     "status": "completed"
   },
   {
-    "content": "Frost Dialog modals (detail/admin) with glass + backdrop blur",
+    "content": "Frost map legend footers (World + US)",
     "status": "completed"
   },
   {
-    "content": "Glass-ify freshness banner",
+    "content": "Confirm pagination/empty already glass",
     "status": "completed"
   },
   {
-    "content": "Convert bg-card surfaces to glass (AI Assistant, Compare, Timeline, Admin)",
-    "status": "completed"
-  },
-  {
-    "content": "Compile + verify frosted glass renders",
+    "content": "Compile + verify (5 shimmer surfaces, dark/light)",
     "status": "completed"
   }
 ]

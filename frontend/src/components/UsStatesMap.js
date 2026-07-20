@@ -64,7 +64,7 @@ export const UsStatesMap = ({ states, mode, onSelectState }) => {
       </div>
 
       <div data-testid={TRACKER.mapLegend}
-        className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 bg-card px-4 py-3 text-xs text-muted-foreground">
+        className="relative z-10 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 bg-background/30 backdrop-blur-md px-4 py-3 text-xs text-muted-foreground">
         {(mode === 'pending' ? PENDING_BINS : MATURITY_BINS).map((b) => (
           <span key={b.key || b.label} className="inline-flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-sm" style={{ background: isDark ? b.dark : b.light }} />
