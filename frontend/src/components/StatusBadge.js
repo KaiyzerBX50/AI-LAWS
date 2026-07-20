@@ -1,9 +1,9 @@
 import React from 'react';
-import { getStatusMeta } from '@/lib/lawUtils';
+import { getRefinedStatusMeta } from '@/lib/lawUtils';
 import { TRACKER } from '@/constants/testIds';
 
-export const StatusBadge = ({ status, className = '' }) => {
-  const meta = getStatusMeta(status);
+export const StatusBadge = ({ status, statusRaw, className = '' }) => {
+  const meta = getRefinedStatusMeta(status, statusRaw);
   const Icon = meta.icon;
   return (
     <span

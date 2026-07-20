@@ -1,18 +1,26 @@
 [
   {
-    "content": "Research + add 12 more state bills (OH, MN, AZ, MI, WI, CT) covering 6 new states",
+    "content": "#1 Level quick-filter chips with live counts",
     "status": "completed"
   },
   {
-    "content": "Reseed v2025.7 (431 total, Proposed 46)",
+    "content": "#2 Detail modal: primary-source button + verify banner + Level meta + status_raw",
     "status": "completed"
   },
   {
-    "content": "UI: add governance Level badge (Federal/State/City/National/International) to law cards",
+    "content": "#3 Vetoed/Failed/Lapsed distinct badges",
     "status": "completed"
   },
   {
-    "content": "Verify compile + render (60 badges, app healthy)",
+    "content": "#4 Pending-activity map heat mode (World + US) + legend",
+    "status": "completed"
+  },
+  {
+    "content": "#5 Data freshness / verified banner",
+    "status": "completed"
+  },
+  {
+    "content": "Verify all (compile + screenshots, no console errors)",
     "status": "completed"
   }
 ]

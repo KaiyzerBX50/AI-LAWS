@@ -15,6 +15,7 @@ import { LawDetailDialog } from '@/components/LawDetailDialog';
 import { StatsRow } from '@/components/StatsRow';
 import { ChartsPanel } from '@/components/ChartsPanel';
 import { FiltersBar } from '@/components/FiltersBar';
+import { LevelChips } from '@/components/LevelChips';
 import { BrowseGrid } from '@/components/BrowseGrid';
 import { TimelineView } from '@/components/TimelineView';
 import { CompareView } from '@/components/CompareView';
@@ -24,7 +25,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
-import { Orbit, Map, LayoutGrid, Clock, GitCompareArrows, Sparkle, ScrollText, Globe2, Shield } from 'lucide-react';
+import { Orbit, Map, LayoutGrid, Clock, GitCompareArrows, Sparkle, ScrollText, Globe2, Shield, ShieldCheck } from 'lucide-react';
 import { TRACKER } from '@/constants/testIds';
 
 const DEFAULT_FILTERS = {
@@ -236,6 +237,16 @@ function Tracker() {
         </div>
       </header>
 
+      {/* Data freshness / provenance banner */}
+      <div className="border-b border-border/40 bg-primary/5" data-testid="data-freshness-banner">
+        <div className="mx-auto flex max-w-[1220px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-1.5 text-center text-[11px] text-muted-foreground sm:px-6 lg:px-8">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+          <span className="font-medium text-foreground/80">Curated &amp; verified from public sources</span>
+          <span className="hidden sm:inline">· every entry links to its primary source</span>
+          <span className="hidden md:inline">· daily auto-sync coming soon</span>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border/50">
         <div className="mx-auto max-w-[1220px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
@@ -303,6 +314,7 @@ function Tracker() {
                 >
                   <ToggleGroupItem value="maturity" className="h-7 px-3 text-xs">Maturity</ToggleGroupItem>
                   <ToggleGroupItem value="status" className="h-7 px-3 text-xs">Status</ToggleGroupItem>
+                  <ToggleGroupItem value="pending" className="h-7 px-3 text-xs">Pending</ToggleGroupItem>
                 </ToggleGroup>
               </div>
             </div>
@@ -326,6 +338,12 @@ function Tracker() {
 
           {/* Browse */}
           <TabsContent value="browse" className="space-y-5">
+            <LevelChips
+              byLevel={stats?.by_level}
+              total={stats?.total_laws || 0}
+              value={filters.level}
+              onChange={(lvl) => setFilters((f) => ({ ...f, level: lvl }))}
+            />
             <FiltersBar
               meta={meta}
               filters={filters}

@@ -48,7 +48,7 @@ export const LawCard = ({ law, onOpen }) => {
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <LevelBadge level={law.level} />
-            <StatusBadge status={law.status} />
+            <StatusBadge status={law.status} statusRaw={law.status_raw} />
           </div>
         </div>
 

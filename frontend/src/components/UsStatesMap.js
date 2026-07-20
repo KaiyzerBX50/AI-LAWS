@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 import { Card } from '@/components/ui/card';
 import { useTheme } from '@/lib/ThemeContext';
-import { maturityFill, statusFill, MATURITY_BINS } from '@/lib/lawUtils';
+import { maturityFill, statusFill, pendingFill, MATURITY_BINS, PENDING_BINS } from '@/lib/lawUtils';
 import { TRACKER } from '@/constants/testIds';
 
 const US_GEO = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
@@ -17,6 +17,7 @@ export const UsStatesMap = ({ states, mode, onSelectState }) => {
     () => (name) => {
       const s = states?.[name];
       if (mode === 'status') return statusFill(s?.counts, isDark);
+      if (mode === 'pending') return pendingFill(s?.counts, isDark);
       return maturityFill(s ? s.maturity : 0, isDark);
     },
     [states, mode, isDark]
@@ -64,8 +65,8 @@ export const UsStatesMap = ({ states, mode, onSelectState }) => {
 
       <div data-testid={TRACKER.mapLegend}
         className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 bg-card px-4 py-3 text-xs text-muted-foreground">
-        {MATURITY_BINS.map((b) => (
-          <span key={b.key} className="inline-flex items-center gap-1.5">
+        {(mode === 'pending' ? PENDING_BINS : MATURITY_BINS).map((b) => (
+          <span key={b.key || b.label} className="inline-flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-sm" style={{ background: isDark ? b.dark : b.light }} />
             {b.label}
           </span>

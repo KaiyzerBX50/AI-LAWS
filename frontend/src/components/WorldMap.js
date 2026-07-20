@@ -3,7 +3,7 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simp
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/ThemeContext';
-import { maturityFill, statusFill, MATURITY_BINS } from '@/lib/lawUtils';
+import { maturityFill, statusFill, pendingFill, MATURITY_BINS, PENDING_BINS } from '@/lib/lawUtils';
 import { Plus, Minus, Locate } from 'lucide-react';
 import { TRACKER } from '@/constants/testIds';
 
@@ -21,6 +21,7 @@ export const WorldMap = ({ countries, mode, onSelectCountry }) => {
     () => (name) => {
       const c = countries?.[name];
       if (mode === 'status') return statusFill(c?.counts, isDark);
+      if (mode === 'pending') return pendingFill(c?.counts, isDark);
       return maturityFill(c ? c.maturity : 0, isDark);
     },
     [countries, mode, isDark]
@@ -123,6 +124,13 @@ export const WorldMap = ({ countries, mode, onSelectCountry }) => {
         {mode === 'maturity' ? (
           MATURITY_BINS.map((b) => (
             <span key={b.key} className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-sm" style={{ background: isDark ? b.dark : b.light }} />
+              {b.label}
+            </span>
+          ))
+        ) : mode === 'pending' ? (
+          PENDING_BINS.map((b) => (
+            <span key={b.label} className="inline-flex items-center gap-1.5">
               <span className="h-3 w-3 rounded-sm" style={{ background: isDark ? b.dark : b.light }} />
               {b.label}
             </span>

@@ -30,6 +30,31 @@ export const STATUS_META = {
 
 export const getStatusMeta = (status) => STATUS_META[status] || STATUS_META.Draft;
 
+// Refine a "Superseded" entry into a clearer label (Vetoed / Failed / Lapsed /
+// Revoked / Expired) using status_raw, with a distinct muted-rose treatment so
+// legislative history reads clearly at a glance.
+const REFINED = [
+  { kw: ['veto'], label: 'Vetoed' },
+  { kw: ['revok'], label: 'Revoked' },
+  { kw: ['fail', 'died', 'session ended'], label: 'Failed' },
+  { kw: ['laps', 'prorog'], label: 'Lapsed' },
+  { kw: ['expire'], label: 'Expired' },
+];
+
+export const getRefinedStatusMeta = (status, statusRaw = '') => {
+  const base = getStatusMeta(status);
+  if (status !== 'Superseded') return base;
+  const raw = String(statusRaw).toLowerCase();
+  const match = REFINED.find((r) => r.kw.some((k) => raw.includes(k)));
+  if (!match) return base;
+  return {
+    ...base,
+    label: match.label,
+    className:
+      'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
+  };
+};
+
 // Map maturity bins (0-4) fill colors for light & dark surfaces
 export const MATURITY_BINS = [
   { key: 0, label: 'No tracked AI law', light: '#E7EDF3', dark: '#1B2633' },
@@ -51,6 +76,25 @@ export const statusFill = (counts, isDark) => {
   if (counts.Proposed > 0) return isDark ? '#7c5a1e' : '#F0B454';
   if (counts.Draft > 0) return isDark ? '#334155' : '#94A3B8';
   return isDark ? '#1B2633' : '#E7EDF3';
+};
+
+// Pending-activity heat: shade by how many proposed/draft (pending) bills are
+// moving in a jurisdiction — highlights where new legislation is active.
+export const PENDING_BINS = [
+  { max: 0, label: 'No pending bills', light: '#E7EDF3', dark: '#1B2633' },
+  { max: 1, label: '1 pending', light: '#FCE9C6', dark: '#3A2E12' },
+  { max: 3, label: '2–3 pending', light: '#F7CE7E', dark: '#6B4E17' },
+  { max: 6, label: '4–6 pending', light: '#F0A93B', dark: '#9A6E1E' },
+  { max: Infinity, label: '7+ pending', light: '#E1852B', dark: '#D69A3A' },
+];
+
+export const pendingCount = (counts) =>
+  counts ? (counts.Proposed || 0) + (counts.Draft || 0) : 0;
+
+export const pendingFill = (counts, isDark) => {
+  const n = pendingCount(counts);
+  const bin = PENDING_BINS.find((b) => n <= b.max) || PENDING_BINS[0];
+  return isDark ? bin.dark : bin.light;
 };
 
 export const REGION_COLORS = {
