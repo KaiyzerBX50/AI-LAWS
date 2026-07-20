@@ -77,7 +77,7 @@ export const AIAssistant = () => {
   return (
     <Card
       data-testid={TRACKER.assistantPanel}
-      className="flex h-[calc(100vh-220px)] min-h-[460px] flex-col overflow-hidden rounded-xl border bg-card shadow-sm"
+      className="flex h-[calc(100vh-220px)] min-h-[460px] flex-col overflow-hidden rounded-xl glass shadow-sm"
     >
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">

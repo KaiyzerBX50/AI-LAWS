@@ -54,7 +54,7 @@ export const TimelineView = ({ onOpenLaw }) => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.2 }}
                   onClick={() => onOpenLaw(law.id)}
-                  className="rounded-lg border border-border bg-card p-3 text-left shadow-sm transition-shadow duration-200 hover:shadow-md hover:border-primary/40"
+                  className="rounded-lg glass p-3 text-left transition-shadow duration-200 hover:shadow-md hover:border-primary/40"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">

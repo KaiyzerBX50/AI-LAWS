@@ -192,7 +192,7 @@ export const AdminPanel = ({ open, onOpenChange, meta, onDataChanged }) => {
                   />
                   <div className="space-y-2">
                     {results.map((l) => (
-                      <div key={l.id} className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5">
+                      <div key={l.id} className="flex items-center gap-2 rounded-lg glass p-2.5">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <StatusBadge status={l.status} />

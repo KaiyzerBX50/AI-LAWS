@@ -238,7 +238,7 @@ function Tracker() {
       </header>
 
       {/* Data freshness / provenance banner */}
-      <div className="border-b border-border/40 bg-primary/5" data-testid="data-freshness-banner">
+      <div className="border-b border-border/40 bg-background/40 backdrop-blur-md" data-testid="data-freshness-banner">
         <div className="mx-auto flex max-w-[1220px] flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-1.5 text-center text-[11px] text-muted-foreground sm:px-6 lg:px-8">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
           <span className="font-medium text-foreground/80">Curated &amp; verified from public sources</span>

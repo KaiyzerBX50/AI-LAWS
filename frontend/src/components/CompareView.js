@@ -41,7 +41,7 @@ export const CompareView = ({ onOpenLaw }) => {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-xl glass p-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <GitCompareArrows className="h-4 w-4 text-accent" />
           Compare jurisdictions
@@ -62,7 +62,7 @@ export const CompareView = ({ onOpenLaw }) => {
       </div>
 
       {selected.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card py-16 text-center">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 bg-background/40 backdrop-blur-md py-16 text-center">
           <Plus className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
             Select two or three countries to compare their AI regulatory approaches.
@@ -79,7 +79,7 @@ export const CompareView = ({ onOpenLaw }) => {
             const enacted = laws.filter((l) => l.status === 'Enacted').length;
             const proposed = laws.filter((l) => ['Proposed', 'Draft'].includes(l.status)).length;
             return (
-              <Card key={name} className="flex flex-col rounded-xl border bg-card p-4 shadow-sm">
+              <Card key={name} className="flex flex-col rounded-xl glass p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-display text-base font-semibold text-foreground">{name}</h3>
                   <Button variant="ghost" size="icon" className="h-6 w-6"
