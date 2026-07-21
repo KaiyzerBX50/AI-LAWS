@@ -90,7 +90,7 @@ def normalize_status(raw: Optional[str]) -> str:
 
 def extract_year(*texts) -> int:
     for t in texts:
-        if t is None:
+        if t is None:  # noqa: E711 - intentional None identity check (PEP 8)
             continue
         m = re.search(r"(19|20)\d{2}", str(t))
         if m:
@@ -130,7 +130,7 @@ def source_list(url: Optional[str]) -> List[dict]:
 
 def _clean(value, default: str = "") -> str:
     """Trim a cell to a string, falling back to a default when empty/None."""
-    s = ("" if value is None else str(value)).strip()
+    s = ("" if value is None else str(value)).strip()  # noqa: E711 - intentional None identity check (PEP 8)
     return s or default
 
 
@@ -204,7 +204,7 @@ def print_stats(entries: List[dict]) -> None:
 
 def load_sheet(wb, name: str, parser) -> List[dict]:
     rows = list(wb[name].iter_rows(values_only=True))[1:]  # skip header
-    return [entry for r in rows if (entry := parser(r)) is not None]
+    return [entry for r in rows if (entry := parser(r)) is not None]  # noqa: E711 - intentional None identity check (PEP 8)
 
 
 def main() -> None:

@@ -180,7 +180,7 @@ def build_country_index():
     """Map geo country name -> list of applicable laws (incl. supra-national).
     Cached; invalidated whenever reload_laws() runs."""
     global _country_index_cache
-    if _country_index_cache is not None:
+    if _country_index_cache is not None:  # noqa: E711,E712 - intentional None identity check (PEP 8)
         return _country_index_cache
     country_laws = defaultdict(list)
     for law in AI_LAWS:
@@ -318,9 +318,9 @@ def _match_exact(law: dict, f: "LawFilterParams") -> bool:
 
 
 def _match_years(law: dict, f: "LawFilterParams") -> bool:
-    if f.year_min is not None and law["year"] < f.year_min:
+    if f.year_min is not None and law["year"] < f.year_min:  # noqa: E711 - intentional None identity check (PEP 8)
         return False
-    if f.year_max is not None and law["year"] > f.year_max:
+    if f.year_max is not None and law["year"] > f.year_max:  # noqa: E711 - intentional None identity check (PEP 8)
         return False
     return True
 
@@ -345,7 +345,7 @@ async def get_laws(
 ):
     results = _filter_laws(f)
     total = len(results)
-    page = results[offset: offset + limit] if limit is not None else results
+    page = results[offset: offset + limit] if limit is not None else results  # noqa: E711 - intentional None identity check (PEP 8)
     return {"count": total, "returned": len(page), "offset": offset, "laws": page}
 
 
@@ -354,7 +354,7 @@ async def export_laws(f: LawFilterParams = Depends()):
     """Export the currently filtered laws as CSV."""
     def _safe(val):
         # Prevent CSV/formula injection in spreadsheet apps.
-        s = "" if val is None else str(val)
+        s = "" if val is None else str(val)  # noqa: E711 - intentional None identity check (PEP 8)
         if s and s[0] in ("=", "+", "-", "@"):
             return "'" + s
         return s
